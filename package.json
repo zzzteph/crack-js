@@ -1,6 +1,6 @@
 {
   "name": "crack-js",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Javascript library to crack various hashes in hashcat format",
   "main": "index.js",
   "scripts": {
@@ -34,11 +34,12 @@
   "homepage": "https://github.com/zzzteph/crack-js#readme",
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "crypto-js": "^4.2.0",
+    "crypto-js": "^4.2.0"
+  },
+  "devDependencies": {
     "vite": "^5.2.12",
     "@babel/cli": "^7.24.8",
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.3"
   }
-
 }
