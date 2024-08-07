@@ -61,7 +61,7 @@ if(hashcat.verifyHash(password,hash,type)==TRUE)
 The **verifyHash** function takes the following options:
 
  - **password** (required): The password that will be used to verify the hash
- - **hash** (required): Rules compatible with the Hashcat rules engine.
+ - **hash** (required): Hash in specified format to test.
  - **type** (required): Type of the hash. You can list all available types with ```availableHashTypes```
  
 ### Return Value
