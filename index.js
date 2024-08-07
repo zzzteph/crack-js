@@ -1,5 +1,5 @@
-import bcrypt from 'bcryptjs';
-import CryptoJS  from "crypto-js";
+var bcrypt = require('bcryptjs');
+var CryptoJS = require("crypto-js");
 
 
 
