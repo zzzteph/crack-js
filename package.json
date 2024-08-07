@@ -1,0 +1,44 @@
+{
+  "name": "crack-js",
+  "version": "1.0.0",
+  "description": "Javascript library to crack various hashes in hashcat format",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js",
+    "build": "vite build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zzzteph/crack-js.git"
+  },
+  "keywords": [
+    "hashcat",
+    "passwords",
+    "hashcracking",
+    "cracking",
+    "sha1",
+    "sha256",
+    "sha512",
+    "netntlm",
+    "bcrypt",
+    "md5crypt",
+    "sha256crypt",
+    "sha512crypt",
+    "jwt"
+  ],
+  "author": "zzzteph",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zzzteph/crack-js/issues"
+  },
+  "homepage": "https://github.com/zzzteph/crack-js#readme",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "crypto-js": "^4.2.0",
+    "vite": "^5.2.12",
+    "@babel/cli": "^7.24.8",
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.3"
+  }
+
+}
