@@ -1,5 +1,5 @@
 
-const hashcat = require('./dist/crack.js');
+const hashcat = ('./dist/crack.js');
 console.log(hashcat.availableHashTypes);
 console.log(hashcat.verifyHash("hashcat","eyJhbGciOiJIUzI1NiJ9.eyIzNDM2MzQyMCI6NTc2ODc1NDd9.f1nXZ3V_Hrr6ee-AFCTLaHRnrkiKmio2t3JqwL32guY","jwt"))
 console.log(hashcat.verifyHash("hashcat","$6$52450745$k5ka2p8bFuSmoVT1tzOyyuaREkkKBcCNqoDKzYiJL9RaE8yMnPgh2XzzF0NDrUhgrcLwg78xs1w5pJiypEdFX/","sha512crypt"));
@@ -18,3 +18,4 @@ console.log(hashcat.verifyHash("hashcat","8efbef4cec28f228fa948daaf4893ac3638fba
 console.log(hashcat.verifyHash("hashcat","7cce966f5503e292a51381f238d071971ad5442488f340f98e379b3aeae2f33778e3e732fcc2f7bdc04f3d460eebf6f8cb77da32df25500c09160dd3bf7d2a6b:1234","hmac-sha512"));
 console.log(hashcat.verifyHash("hashcat","7196759210defdc0","mysql323"));
 console.log(hashcat.verifyHash("hashcat","$1$28772684$iEwNOgGugqO9.bIz5sk8k/","md5crypt"));
+   

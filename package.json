@@ -1,8 +1,8 @@
 {
   "name": "crack-js",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "Javascript library to crack various hashes in hashcat format",
-  "main": "index.js",
+  "main": "dist/crack.js",
   "scripts": {
     "test": "node test.js",
     "build": "vite build"
