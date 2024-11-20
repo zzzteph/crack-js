@@ -702,8 +702,38 @@ export function verifyHash(password, hash, hashType) {
 }
 
 
+export function isValidHash(hash, hashType) {
+    switch (hashType) {
+
+        case 'jwt': return /^([A-Za-z0-9-_]+={0,2})\.([A-Za-z0-9-_]+={0,2})\.([A-Za-z0-9-_]+={0,2})$/.test(hash);
+        case 'netntlmv2': return /^[^:]+::[^:]+:[a-fA-F0-9]{16}:[a-fA-F0-9]{32,64}:[a-fA-F0-9]+$/.test(hash);
+        case 'ntlm': return /^[a-fA-F0-9]{32}$/.test(hash);
+        case 'md5': return /^[a-fA-F0-9]{32}$/.test(hash);
+        case 'sha1': return /^[a-fA-F0-9]{40}$/.test(hash);
+        case 'sha256': return /^[a-fA-F0-9]{64}$/.test(hash);
+        case 'sha512': return /^[a-fA-F0-9]{128}$/.test(hash);
+        case 'bcrypt': return /^\$2[aby]?\$[0-9]{2}\$[./A-Za-z0-9]{53}$/.test(hash);
+        case 'md5crypt':return /^\$1\$[./A-Za-z0-9]{1,8}\$[./A-Za-z0-9]{22}$/.test(hash);
+        case 'sha256crypt':return /^\$5\$(rounds=\d+\$)?[./A-Za-z0-9]{1,16}\$[./A-Za-z0-9]{43,86}$/.test(hash);
+        case 'sha512crypt':return /^\$6\$(rounds=\d+\$)?[./A-Za-z0-9]{1,16}\$[./A-Za-z0-9]{86,}$/.test(hash);
+        case 'mysql323':return /^[a-fA-F0-9]{16}$/.test(hash);
+        case 'hmac-md5': return /^[a-fA-F0-9]{32}:[A-Za-z0-9_]+$/.test(hash);
+        case 'hmac-sha1':   return /^[a-fA-F0-9]{40}:[A-Za-z0-9_]+$/.test(hash);
+        case 'hmac-sha256':    return /^[a-fA-F0-9]{64}:[A-Za-z0-9_]+$/.test(hash);
+        case 'hmac-sha512':    return /^[a-fA-F0-9]{128}:[A-Za-z0-9_]+$/.test(hash);                    
+        default:
+            throw new Error(`Unsupported hash type: ${hashType}`);
+    }
+}
 
 
+export function getPossibleHashTypes(hash) {
+    let possibleHashTypes=[];
+    for (let i = 0; i < availableHashTypes.length; i++) {
+       if(isValidHash(hash,availableHashTypes[i]))possibleHashTypes.push(availableHashTypes[i]);
+    }
+    return possibleHashTypes;
+}
 
 
 
@@ -913,4 +943,4 @@ function verify_mysql323(password,hash) {
 
 
 
-export const availableHashTypes = ['md5crypt','sha256crypt','sha512crypt','ntlm', 'md5', 'sha1','sha256','sha512', 'bcrypt','netntlmv2','hmac-md5','hmac-sha1','hmac-sha256','hmac-sha512','mysql323'];
+export const availableHashTypes = ['md5crypt','sha256crypt','sha512crypt','ntlm', 'md5', 'sha1','sha256','sha512', 'bcrypt','netntlmv2','hmac-md5','hmac-sha1','hmac-sha256','hmac-sha512','mysql323','jwt'];
