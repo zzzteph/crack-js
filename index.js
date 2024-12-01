@@ -702,6 +702,49 @@ export function verifyHash(password, hash, hashType) {
 }
 
 
+
+export function measureSpeed(hashType) {
+    let hash=false;
+    switch (hashType) {
+
+        case 'jwt': hash= "eyJhbGciOiJIUzI1NiJ9.eyIzNDM2MzQyMCI6NTc2ODc1NDd9.f1nXZ3V_Hrr6ee-AFCTLaHRnrkiKmio2t3JqwL32guY";break;
+        case 'netntlmv2':  hash= "admin::N46iSNekpT:08ca45b7d7ea58ee:88dcbe4446168966a153a0064958dac6:5c7830315c7830310000000000000b45c67103d07d7b95acd12ffa11230e0000000052920b85f78d013c31cdb3b92f5d765c783030";break;
+        case 'ntlm': hash= "b4b9b02e6f09a9bd760f388b67351e2b";break;
+        case 'md5': hash= "8743b52063cd84097a65d1633f5c74f5";break;
+        case 'sha1':  hash= "b89eaac7e61417341b710b727768294d0e6a277b";break;
+        case 'sha256':  hash= "127e6fbfe24a750e72930c220a8e138275656b8e5d8f48a98c3c92df2caba935";break;
+        case 'sha512':  hash= "82a9dda829eb7f8ffe9fbe49e45d47d2dad9664fbb7adf72492e3c81ebd3e29134d9bc12212bf83c6840f10e8246b9db54a4859b7ccd0123d86e5872c1e5082f";break;
+        case 'bcrypt': hash= "$2a$05$LhayLxezLhK1LhWvKxCyLOj0j1u.Kj0jZ0pEmm134uzrQlFvQJLF6";break;
+        case 'md5crypt': hash= "$1$28772684$iEwNOgGugqO9.bIz5sk8k/";break;
+        case 'sha256crypt': hash= "$5$rounds=5000$GX7BopJZJxPc/KEK$le16UF8I2Anb.rOrn22AUPWvzUETDGefUmAV8AZkGcD";break;
+        case 'sha512crypt': hash= "$6$52450745$k5ka2p8bFuSmoVT1tzOyyuaREkkKBcCNqoDKzYiJL9RaE8yMnPgh2XzzF0NDrUhgrcLwg78xs1w5pJiypEdFX/";break;
+        case 'mysql323': hash= "7196759210defdc0";break;
+        case 'hmac-md5':  hash= "bfd280436f45fa38eaacac3b00518f29:1234";break;
+        case 'hmac-sha1': hash= "d89c92b4400b15c39e462a8caa939ab40c3aeeea:1234";break;
+        case 'hmac-sha256': hash= "8efbef4cec28f228fa948daaf4893ac3638fbae81358ff9020be1d7a9a509fc6:1234";break;
+        case 'hmac-sha512': hash= "7cce966f5503e292a51381f238d071971ad5442488f340f98e379b3aeae2f33778e3e732fcc2f7bdc04f3d460eebf6f8cb77da32df25500c09160dd3bf7d2a6b:1234";break;      
+        default:
+            throw new Error(`Unsupported hash type: ${hashType}`);
+    }
+
+      const duration = 5000;
+    
+        const startTime = Date.now();
+        let count = 0;
+        while (Date.now() - startTime < duration) {
+          verifyHash("hashcat", hash, hashType);
+          count++;
+        }
+      return Math.floor( count / (duration / 1000));
+
+}
+
+
+
+
+
+
+
 export function isValidHash(hash, hashType) {
     switch (hashType) {
 
