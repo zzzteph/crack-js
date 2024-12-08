@@ -41,7 +41,11 @@ console.log(hashcat.getPossibleHashTypes("7cce966f5503e292a51381f238d071971ad544
 console.log(hashcat.getPossibleHashTypes("7196759210defdc0"));
 console.log(hashcat.getPossibleHashTypes("$1$28772684$iEwNOgGugqO9.bIz5sk8k/"));
 
-
+console.log("Is 'fast' hash");
+for(let type of hashcat.availableHashTypes)
+{
+    console.log(type+":"+hashcat.isFast(type));
+}
 
 
 console.log("Speed measure");

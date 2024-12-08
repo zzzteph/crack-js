@@ -742,6 +742,19 @@ export function measureSpeed(hashType) {
 
 
 
+export function isFast(hashType) {
+    switch (hashType) {
+
+        case 'ntlm': return true;
+        case 'md5':return true;
+        case 'sha1': return true;
+        case 'sha256':return true;
+        case 'sha512': return true;
+        case 'mysql323':return true;        
+        default:
+            return false;
+    }
+}
 
 
 
