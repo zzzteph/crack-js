@@ -17,7 +17,11 @@ console.log(hashcat.verifyHash("hashcat","8efbef4cec28f228fa948daaf4893ac3638fba
 console.log(hashcat.verifyHash("hashcat","7cce966f5503e292a51381f238d071971ad5442488f340f98e379b3aeae2f33778e3e732fcc2f7bdc04f3d460eebf6f8cb77da32df25500c09160dd3bf7d2a6b:1234","hmac-sha512"));
 console.log(hashcat.verifyHash("hashcat","7196759210defdc0","mysql323"));
 console.log(hashcat.verifyHash("hashcat","$1$28772684$iEwNOgGugqO9.bIz5sk8k/","md5crypt"));
-   
+console.log(hashcat.verifyHash("test","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.5mhBHqs5_DTLdINd9p5m7ZJ6XD0Xc55kIaCRY5r6HRA","jwt"));
+console.log(hashcat.verifyHash("test","eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.KOZqnJ-wEzC-JvqqIHGKBIGgbYHH2Fej71TpBctnIguBkf3EdSYiwuRMSz35uY8E","jwt"));
+console.log(hashcat.verifyHash("test","eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.VXfjNdZn9mDxRYhiaCi8rYYtcuNe3KCfK3LvggWSaHwjZsag9ugMOuDPOeeBD3oNhK-cOkTvRLy_ERbgnEyxYA","jwt"));
+
+
 
 
 console.log(hashcat.getPossibleHashTypes("eyJhbGciOiJIUzI1NiJ9.eyIzNDM2MzQyMCI6NTc2ODc1NDd9.f1nXZ3V_Hrr6ee-AFCTLaHRnrkiKmio2t3JqwL32guY"));
@@ -36,6 +40,9 @@ console.log(hashcat.getPossibleHashTypes("8efbef4cec28f228fa948daaf4893ac3638fba
 console.log(hashcat.getPossibleHashTypes("7cce966f5503e292a51381f238d071971ad5442488f340f98e379b3aeae2f33778e3e732fcc2f7bdc04f3d460eebf6f8cb77da32df25500c09160dd3bf7d2a6b:1234"));
 console.log(hashcat.getPossibleHashTypes("7196759210defdc0"));
 console.log(hashcat.getPossibleHashTypes("$1$28772684$iEwNOgGugqO9.bIz5sk8k/"));
+
+
+
 
 console.log("Speed measure");
 for(let type of hashcat.availableHashTypes)

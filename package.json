@@ -1,6 +1,6 @@
 {
   "name": "crack-js",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Javascript library to crack various hashes in hashcat format",
   "main": "dist/crack.js",
   "scripts": {
@@ -24,7 +24,8 @@
     "md5crypt",
     "sha256crypt",
     "sha512crypt",
-    "jwt"
+    "jwt",
+    "netntlm"
   ],
   "author": "zzzteph",
   "license": "ISC",

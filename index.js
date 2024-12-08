@@ -861,7 +861,19 @@ function verifyJWT(password,hash)
 {
 	const jwtParts = hash.split(".");
 	var clearedToken=String(jwtParts[0])+"."+String(jwtParts[1]);
-    var signature=CryptoJS.HmacSHA256(String(clearedToken),String(password)).toString(CryptoJS.enc.Base64).replaceAll("=","").replaceAll("+","-").replaceAll('/','_');
+    const header = JSON.parse(atob(jwtParts[0]));
+    if (!header.alg) 
+        return false;
+    let signature=false;
+    let alg=header.alg.toLowerCase();
+    switch(alg)
+    {
+        case "hs256":signature=CryptoJS.HmacSHA256(String(clearedToken),String(password)).toString(CryptoJS.enc.Base64).replaceAll("=","").replaceAll("+","-").replaceAll('/','_');break;
+        case "hs384":signature=CryptoJS.HmacSHA384(String(clearedToken),String(password)).toString(CryptoJS.enc.Base64).replaceAll("=","").replaceAll("+","-").replaceAll('/','_');break;
+        case "hs512":signature=CryptoJS.HmacSHA512(String(clearedToken),String(password)).toString(CryptoJS.enc.Base64).replaceAll("=","").replaceAll("+","-").replaceAll('/','_');break;
+        default: return false;
+    }
+    
     if (jwtParts[2] == signature)
         return true
     return false;
