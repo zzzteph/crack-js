@@ -6,19 +6,19 @@
 <title>crack-js // hash toolkit</title>
 <style>
   :root{
-    --bg:#0a0e0c; --bg2:#0d1210; --panel:#0e1512; --raised:#121a16;
-    --border:#1e3328; --border2:#2c5943;
-    --fg:#84c6a3; --accent:#44d99a; --accent2:#5cc2db; --dim:#5c8871;
-    --modecol:#d3a366; --good:#44d99a; --red:#df7070;
-    --glow:rgba(68,217,154,.12);
+    --bg:#0c0e0d; --bg2:#101312; --panel:#121513; --raised:#171a18;
+    --border:#232826; --border2:#343b37;
+    --fg:#dde2df; --accent:#54cf8a; --accent2:#54cf8a; --dim:#8a928c;
+    --modecol:#8fcaa9; --good:#54cf8a; --red:#df7a7a;
+    --glow:transparent;
     --mono:'JetBrains Mono','Fira Code','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,Consolas,'DejaVu Sans Mono',monospace;
   }
   :root[data-phosphor="amber"]{
-    --bg:#0c0a04; --bg2:#100d06; --panel:#141009; --raised:#18130b;
-    --border:#382e14; --border2:#6e5626;
-    --fg:#d6b077; --accent:#e0aa5a; --accent2:#66bdd8; --dim:#8f7440;
-    --modecol:#66bdd8; --good:#e0be78; --red:#df7a6a;
-    --glow:rgba(224,170,90,.12);
+    --bg:#0e0d0a; --bg2:#131210; --panel:#151311; --raised:#1a1815;
+    --border:#2a2620; --border2:#41392d;
+    --fg:#e2ddd4; --accent:#e0aa5a; --accent2:#e0aa5a; --dim:#948c7e;
+    --modecol:#d6c199; --good:#e0aa5a; --red:#df7a6a;
+    --glow:transparent;
   }
 
   *{box-sizing:border-box}
@@ -30,11 +30,7 @@
     min-height:100vh;overflow-x:hidden;
   }
   /* CRT scanline + flicker overlay */
-  body::before{
-    content:"";position:fixed;inset:0;z-index:60;pointer-events:none;
-    background:repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.09) 3px);
-    opacity:.35;mix-blend-mode:multiply;
-  }
+  body::before{content:none}  /* scanlines removed for readability */
   ::selection{background:var(--accent);color:#000}
   a{color:var(--accent2);text-decoration:none;border-bottom:1px dotted var(--accent2)}
   a:hover{text-shadow:0 0 6px var(--glow)}
@@ -48,7 +44,7 @@
     border-bottom:1px solid var(--border2)}
   .dots{display:flex;gap:7px}
   .dots i{width:11px;height:11px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.4)}
-  .dots i:nth-child(1){background:#ff5f56}.dots i:nth-child(2){background:#ffbd2e}.dots i:nth-child(3){background:#27c93f}
+  .dots i:nth-child(1){background:#3d443f}.dots i:nth-child(2){background:#3d443f}.dots i:nth-child(3){background:var(--accent)}
   .titlebar .ttl{flex:1;text-align:center;color:var(--dim);font-size:12px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .phosphor-btn{appearance:none;background:transparent;border:1px solid var(--border2);color:var(--dim);
     border-radius:5px;padding:4px 9px;font-family:var(--mono);font-size:11px;cursor:pointer;white-space:nowrap}
@@ -187,10 +183,7 @@
   .pot-list{border:1px solid var(--accent);border-top:0;border-radius:0 0 5px 5px;background:var(--bg);
     padding:10px 12px;max-height:190px;overflow:auto;font-size:12px;color:var(--fg);word-break:break-all;line-height:1.7}
 
-  @media (prefers-reduced-motion: no-preference){
-    .cursor{animation:blink 1.2s steps(1) infinite}
-    @keyframes blink{50%{opacity:0}}
-  }
+  /* no blinking caret / no motion — kept static for readability */
   @media (max-width:600px){
     body{font-size:13.5px}
     .wrap{padding:12px 9px 54px}
@@ -228,7 +221,7 @@
       <button class="phosphor-btn" id="themebtn" aria-label="Toggle phosphor color">◉ phosphor</button>
     </div>
     <div class="screen">
-      <h1 class="banner"><span>crack</span><span class="sep">-</span><span>js</span><span class="cursor">█</span></h1>
+      <h1 class="banner"><span>crack</span><span class="sep">-</span><span>js</span></h1>
       <p class="tagline">pure-javascript hashcat-format engine — <b>verify · identify · generate · benchmark</b>
         hundreds of hash modes with no server and no dependency beyond crypto-js. everything below runs in your browser.</p>
 
