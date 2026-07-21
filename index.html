@@ -6,19 +6,19 @@
 <title>crack-js // hash toolkit</title>
 <style>
   :root{
-    --bg:#050805; --bg2:#070c08; --panel:#0a0f0b; --raised:#0c130d;
-    --border:#123322; --border2:#1d6b3f;
-    --fg:#5fe39a; --accent:#00ff9c; --accent2:#4fe3ff; --dim:#367a52;
-    --modecol:#ffb454; --good:#00ff9c; --red:#ff5f5f;
-    --glow:rgba(0,255,156,.50);
+    --bg:#0a0e0c; --bg2:#0d1210; --panel:#0e1512; --raised:#121a16;
+    --border:#1e3328; --border2:#2c5943;
+    --fg:#84c6a3; --accent:#44d99a; --accent2:#5cc2db; --dim:#5c8871;
+    --modecol:#d3a366; --good:#44d99a; --red:#df7070;
+    --glow:rgba(68,217,154,.12);
     --mono:'JetBrains Mono','Fira Code','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,Consolas,'DejaVu Sans Mono',monospace;
   }
   :root[data-phosphor="amber"]{
-    --bg:#080500; --bg2:#0c0902; --panel:#100b02; --raised:#140e03;
-    --border:#3a2908; --border2:#8a6416;
-    --fg:#f0b862; --accent:#ffb44a; --accent2:#5fd7ff; --dim:#8f6c2c;
-    --modecol:#5fd7ff; --good:#ffcf6a; --red:#ff6b5f;
-    --glow:rgba(255,180,74,.48);
+    --bg:#0c0a04; --bg2:#100d06; --panel:#141009; --raised:#18130b;
+    --border:#382e14; --border2:#6e5626;
+    --fg:#d6b077; --accent:#e0aa5a; --accent2:#66bdd8; --dim:#8f7440;
+    --modecol:#66bdd8; --good:#e0be78; --red:#df7a6a;
+    --glow:rgba(224,170,90,.12);
   }
 
   *{box-sizing:border-box}
@@ -32,8 +32,8 @@
   /* CRT scanline + flicker overlay */
   body::before{
     content:"";position:fixed;inset:0;z-index:60;pointer-events:none;
-    background:repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.20) 3px);
-    opacity:.55;mix-blend-mode:multiply;
+    background:repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.09) 3px);
+    opacity:.35;mix-blend-mode:multiply;
   }
   ::selection{background:var(--accent);color:#000}
   a{color:var(--accent2);text-decoration:none;border-bottom:1px dotted var(--accent2)}
@@ -43,7 +43,7 @@
 
   /* terminal window */
   .terminal{border:1px solid var(--border2);border-radius:8px;background:var(--panel);
-    box-shadow:0 0 0 1px #000 inset, 0 0 40px rgba(0,0,0,.6), 0 0 80px var(--glow);overflow:hidden}
+    box-shadow:0 0 0 1px rgba(0,0,0,.4) inset, 0 10px 34px rgba(0,0,0,.42);overflow:hidden}
   .titlebar{display:flex;align-items:center;gap:12px;padding:9px 12px;background:var(--raised);
     border-bottom:1px solid var(--border2)}
   .dots{display:flex;gap:7px}
@@ -58,10 +58,10 @@
   .screen{padding:24px 22px 26px}
 
   /* banner wordmark */
-  .banner{font-size:clamp(34px,8vw,68px);font-weight:800;letter-spacing:.04em;line-height:1;margin:6px 0 2px;
-    color:var(--accent);text-shadow:2px 0 var(--red), -2px 0 var(--accent2), 0 0 22px var(--glow);}
-  .banner .sep{color:var(--dim);text-shadow:none}
-  .banner .cursor{color:var(--accent);text-shadow:0 0 14px var(--glow)}
+  .banner{font-size:clamp(32px,7.5vw,60px);font-weight:800;letter-spacing:.03em;line-height:1;margin:6px 0 2px;
+    color:var(--accent);}
+  .banner .sep{color:var(--dim)}
+  .banner .cursor{color:var(--accent);opacity:.85}
   .tagline{color:var(--dim);font-size:12.5px;margin:10px 0 20px;max-width:70ch}
   .tagline b{color:var(--fg)}
 
@@ -126,7 +126,8 @@
   td.mode{color:var(--modecol);font-size:12.5px;white-space:nowrap}
   td.mode::before{content:"-m ";color:var(--dim)}
   td.name{color:var(--fg);white-space:nowrap}
-  td.hash{font-size:11.5px;word-break:break-all;color:var(--dim);max-width:560px}
+  td.hash{font-size:11.5px;word-break:break-all;color:var(--dim);max-width:560px;cursor:pointer}
+  td.hash:hover{color:var(--fg)}
   td.hps{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--accent)}
   .rank{color:var(--dim);font-size:12px}
   .barcell{width:32%;min-width:110px}
@@ -187,10 +188,8 @@
     padding:10px 12px;max-height:190px;overflow:auto;font-size:12px;color:var(--fg);word-break:break-all;line-height:1.7}
 
   @media (prefers-reduced-motion: no-preference){
-    .cursor{animation:blink 1.05s steps(1) infinite}
+    .cursor{animation:blink 1.2s steps(1) infinite}
     @keyframes blink{50%{opacity:0}}
-    body::before{animation:flick 6s steps(2) infinite}
-    @keyframes flick{0%,97%,100%{opacity:.55}98%{opacity:.42}}
   }
   @media (max-width:600px){
     body{font-size:13.5px}
@@ -282,15 +281,16 @@
 
       <!-- GENERATE -->
       <section class="panel" id="panel-gen" role="tabpanel" aria-labelledby="tab-gen">
-        <label for="pwin" class="hint" style="display:block;margin-bottom:8px">./generate &nbsp; # emit a valid hash of your password in every generatable mode:</label>
+        <label for="pwin" class="hint" style="display:block;margin-bottom:8px">./generate &nbsp; # pick a mode, type a password, and emit its hash:</label>
         <div class="controls">
           <span class="prompt">root@crack-js:~$ <b>echo -n</b></span>
-          <input type="text" id="pwin" value="hashcat" spellcheck="false" autocomplete="off" style="min-width:220px">
+          <input type="text" id="pwin" value="hashcat" spellcheck="false" autocomplete="off" style="min-width:170px">
+          <label class="field">mode <select id="gen-mode"></select></label>
           <button class="btn" id="run-gen">generate</button>
-          <label class="field"><input type="text" id="filtergen" placeholder="grep name/mode…" style="min-width:150px"></label>
+          <label class="field"><input type="text" id="filtergen" placeholder="grep (for all)…" style="min-width:120px"></label>
         </div>
         <div class="progress" id="gprog"><i></i></div>
-        <div class="statusline" id="gen-status">enter a password and run — crack-js emits a valid hash for it in each generatable mode.</div>
+        <div class="statusline" id="gen-status">pick a mode, type a password, and hit generate. choose “all generatable” to emit every mode at once (slower). click a hash to copy it.</div>
         <div class="tblwrap" id="gen-tblwrap" style="display:none">
           <table><thead><tr><th>Mode</th><th>Name</th><th>Hash</th></tr></thead><tbody id="gen-body"></tbody></table>
         </div>
@@ -449,10 +449,30 @@
   });
 
   // ---- generate ----
+  // mode selector: an "all" option + every generatable mode (default md5)
+  (function(){
+    var opts='<option value="all">all generatable (slower)</option>';
+    C.hashTypes.slice().filter(function(t){return t.generatable;}).sort(function(a,b){return a.mode-b.mode;}).forEach(function(t){
+      opts+='<option value="'+t.mode+'"'+(t.mode===0?' selected':'')+'>'+escapeHtml(t.name)+'  (-m '+t.mode+')</option>';
+    });
+    $('gen-mode').innerHTML=opts;
+  })();
+
   var genRunning=false, genAll=[];
   $('run-gen').addEventListener('click', function(){
     if(genRunning) return;
     var pw=$('pwin').value;
+    var sel=$('gen-mode').value;
+    if(sel!=='all'){                              // single mode — instant, no heavy loop
+      var sm=parseInt(sel,10), sh=null;
+      try{ sh=C.generateHash(sm, pw); }catch(e){ sh=null; }
+      genAll = (sh!=null) ? [{mode:sm, name:C.modeInfo[sm]||'?', hash:String(sh)}] : [];
+      $('gen-tblwrap').style.display='block'; renderGen();
+      $('gen-status').textContent = (sh!=null)
+        ? ('generated -m '+sm+' ('+(C.modeInfo[sm]||'?')+') for "'+pw+'" — click the hash to copy.')
+        : ('-m '+sm+' cannot generate for "'+pw+'" (it needs a specific input length).');
+      return;
+    }
     var modes=C.generatableModes.slice().sort(function(a,b){return a-b;});
     genRunning=true; $('run-gen').disabled=true; genAll=[];
     $('gprog').classList.add('on'); $('gprog').firstChild.style.width='0%';
@@ -487,6 +507,13 @@
   }
   $('filtergen').addEventListener('input', renderGen);
   $('pwin').addEventListener('keydown', function(e){ if(e.key==='Enter') $('run-gen').click(); });
+  $('gen-body').addEventListener('click', function(e){
+    var td=e.target; while(td && td.nodeName!=='TD'){ td=td.parentNode; }
+    if(!td || !/\bhash\b/.test(td.className)) return;
+    var txt=td.textContent; if(txt==='copied ✓') return;
+    try{ if(navigator.clipboard) navigator.clipboard.writeText(txt); }catch(_){}
+    td.textContent='copied ✓'; setTimeout(function(){ td.textContent=txt; }, 800);
+  });
 
   // ---- crack (dictionary-attack task manager) ----
   // mode selector: auto-detect + every hash type

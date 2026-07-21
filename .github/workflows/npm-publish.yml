@@ -59,6 +59,13 @@ jobs:
       - name: Apply version
         run: npm version "${{ steps.ver.outputs.next }}" --no-git-tag-version
 
+      - name: Verify npm authentication
+        # Fails early and clearly if NPM_TOKEN is missing/expired/read-only.
+        # (A bad token makes `npm publish` return a confusing "404 Not Found - PUT".)
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish to npm
         run: npm publish --access public
         env:
