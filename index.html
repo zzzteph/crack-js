@@ -1,176 +1,322 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-phosphor="green">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>crack-js — hash toolkit</title>
+<title>crack-js // hash toolkit</title>
 <style>
   :root{
-    --paper:#f4f3ef; --panel:#fbfaf7; --ink:#191c22; --muted:#5c626c;
-    --accent:#0f7d74; --accent-soft:#0f7d7418; --amber:#9a5b12; --hair:#e2dfd6;
-    --code-bg:#eceae3; --bar:#0f7d74; --good:#127a2f; --shadow:0 1px 2px rgba(20,22,30,.05),0 8px 24px rgba(20,22,30,.06);
-    --mono:ui-monospace,"SFMono-Regular","Cascadia Code",Menlo,Consolas,monospace;
-    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --bg:#050805; --bg2:#070c08; --panel:#0a0f0b; --raised:#0c130d;
+    --border:#123322; --border2:#1d6b3f;
+    --fg:#5fe39a; --accent:#00ff9c; --accent2:#4fe3ff; --dim:#367a52;
+    --modecol:#ffb454; --good:#00ff9c; --red:#ff5f5f;
+    --glow:rgba(0,255,156,.50);
+    --mono:'JetBrains Mono','Fira Code','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,Consolas,'DejaVu Sans Mono',monospace;
   }
-  @media (prefers-color-scheme:dark){:root{
-    --paper:#101319; --panel:#171b22; --ink:#d9dce2; --muted:#8b929e;
-    --accent:#3fbdb2; --accent-soft:#3fbdb21e; --amber:#e0a458; --hair:#262b34;
-    --code-bg:#1b2027; --bar:#3fbdb2; --good:#4fbf6a; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
-  }}
-  :root[data-theme="light"]{--paper:#f4f3ef;--panel:#fbfaf7;--ink:#191c22;--muted:#5c626c;--accent:#0f7d74;--accent-soft:#0f7d7418;--amber:#9a5b12;--hair:#e2dfd6;--code-bg:#eceae3;--bar:#0f7d74;--good:#127a2f;--shadow:0 1px 2px rgba(20,22,30,.05),0 8px 24px rgba(20,22,30,.06);}
-  :root[data-theme="dark"]{--paper:#101319;--panel:#171b22;--ink:#d9dce2;--muted:#8b929e;--accent:#3fbdb2;--accent-soft:#3fbdb21e;--amber:#e0a458;--hair:#262b34;--code-bg:#1b2027;--bar:#3fbdb2;--good:#4fbf6a;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}
+  :root[data-phosphor="amber"]{
+    --bg:#080500; --bg2:#0c0902; --panel:#100b02; --raised:#140e03;
+    --border:#3a2908; --border2:#8a6416;
+    --fg:#f0b862; --accent:#ffb44a; --accent2:#5fd7ff; --dim:#8f6c2c;
+    --modecol:#5fd7ff; --good:#ffcf6a; --red:#ff6b5f;
+    --glow:rgba(255,180,74,.48);
+  }
 
   *{box-sizing:border-box}
   html,body{margin:0}
-  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:920px;margin:0 auto;padding:0 20px 80px}
-  a{color:var(--accent)}
+  body{
+    background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:14px;line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(120% 90% at 50% -10%, var(--bg2) 0%, var(--bg) 62%);
+    min-height:100vh;overflow-x:hidden;
+  }
+  /* CRT scanline + flicker overlay */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:60;pointer-events:none;
+    background:repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.20) 3px);
+    opacity:.55;mix-blend-mode:multiply;
+  }
+  ::selection{background:var(--accent);color:#000}
+  a{color:var(--accent2);text-decoration:none;border-bottom:1px dotted var(--accent2)}
+  a:hover{text-shadow:0 0 6px var(--glow)}
 
-  header.hero{padding:44px 0 22px}
-  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
-  h1{font-size:clamp(30px,5vw,42px);margin:12px 0 8px;letter-spacing:-.02em;font-weight:680}
-  h1 b{color:var(--accent)}
-  .lede{color:var(--muted);max-width:60ch;margin:0}
-  .stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
-  .stat{background:var(--panel);border:1px solid var(--hair);border-radius:9px;padding:7px 12px;box-shadow:var(--shadow)}
-  .stat b{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:16px}
-  .stat span{font-size:11px;color:var(--muted);margin-left:6px}
+  .wrap{max-width:1000px;margin:0 auto;padding:26px 16px 70px}
 
-  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--hair);margin:26px 0 0}
-  .tab{appearance:none;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);
-    font-family:var(--sans);font-size:14.5px;font-weight:560;padding:11px 16px;cursor:pointer;margin-bottom:-1px}
-  .tab:hover{color:var(--ink)}
-  .tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
-  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-  .panel{display:none;padding:26px 0 0}
+  /* terminal window */
+  .terminal{border:1px solid var(--border2);border-radius:8px;background:var(--panel);
+    box-shadow:0 0 0 1px #000 inset, 0 0 40px rgba(0,0,0,.6), 0 0 80px var(--glow);overflow:hidden}
+  .titlebar{display:flex;align-items:center;gap:12px;padding:9px 12px;background:var(--raised);
+    border-bottom:1px solid var(--border2)}
+  .dots{display:flex;gap:7px}
+  .dots i{width:11px;height:11px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.4)}
+  .dots i:nth-child(1){background:#ff5f56}.dots i:nth-child(2){background:#ffbd2e}.dots i:nth-child(3){background:#27c93f}
+  .titlebar .ttl{flex:1;text-align:center;color:var(--dim);font-size:12px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .phosphor-btn{appearance:none;background:transparent;border:1px solid var(--border2);color:var(--dim);
+    border-radius:5px;padding:4px 9px;font-family:var(--mono);font-size:11px;cursor:pointer;white-space:nowrap}
+  .phosphor-btn:hover{color:var(--accent);border-color:var(--accent);text-shadow:0 0 6px var(--glow)}
+  .phosphor-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .screen{padding:24px 22px 26px}
+
+  /* banner wordmark */
+  .banner{font-size:clamp(34px,8vw,68px);font-weight:800;letter-spacing:.04em;line-height:1;margin:6px 0 2px;
+    color:var(--accent);text-shadow:2px 0 var(--red), -2px 0 var(--accent2), 0 0 22px var(--glow);}
+  .banner .sep{color:var(--dim);text-shadow:none}
+  .banner .cursor{color:var(--accent);text-shadow:0 0 14px var(--glow)}
+  .tagline{color:var(--dim);font-size:12.5px;margin:10px 0 20px;max-width:70ch}
+  .tagline b{color:var(--fg)}
+
+  /* boot log (stats) */
+  .bootlog{margin:0 0 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);padding:8px 12px}
+  .bootline{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:3px 0;font-size:12.5px}
+  .bootline + .bootline{border-top:1px dotted var(--border)}
+  .bl-msg{color:var(--dim)}
+  .bl-msg::before{content:"> ";color:var(--accent)}
+  .bl-ok{color:var(--accent);white-space:nowrap;text-shadow:0 0 6px var(--glow)}
+
+  /* tabs = command menu */
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 0}
+  .tab{appearance:none;background:transparent;border:1px solid var(--border2);color:var(--dim);
+    font-family:var(--mono);font-size:13px;padding:8px 14px;border-radius:5px;cursor:pointer;letter-spacing:.02em}
+  .tab::before{content:"./";color:var(--dim)}
+  .tab:hover{color:var(--fg);border-color:var(--accent)}
+  .tab[aria-selected="true"]{color:#000;background:var(--accent);border-color:var(--accent);text-shadow:none;box-shadow:0 0 18px var(--glow)}
+  .tab[aria-selected="true"]::before{content:"▸ ";color:#000}
+  .tab:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+
+  .panel{display:none;padding:22px 0 0}
   .panel.active{display:block}
 
-  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:18px}
-  button.btn{appearance:none;background:var(--accent);color:#fff;border:none;border-radius:9px;padding:11px 20px;
-    font-family:var(--sans);font-size:14.5px;font-weight:600;cursor:pointer;box-shadow:var(--shadow)}
-  button.btn:hover{filter:brightness(1.06)}
-  button.btn:disabled{opacity:.55;cursor:default;filter:none}
-  button.btn.ghost{background:var(--panel);color:var(--ink);border:1px solid var(--hair)}
-  button.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  label.field{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:7px}
-  select,input[type=number]{font-family:var(--mono);font-size:13px;background:var(--panel);color:var(--ink);
-    border:1px solid var(--hair);border-radius:7px;padding:7px 9px}
-  .hint{font-size:12.5px;color:var(--muted)}
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
+  .prompt{color:var(--accent);font-size:13px;white-space:nowrap}
+  .prompt b{color:var(--modecol);font-weight:400}
 
-  .progress{height:6px;background:var(--code-bg);border-radius:99px;overflow:hidden;margin:2px 0 16px;display:none}
+  button.btn{appearance:none;background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:5px;
+    padding:9px 14px;font-family:var(--mono);font-size:13px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.05em}
+  button.btn::before{content:"[ "}button.btn::after{content:" ]"}
+  button.btn:hover{background:var(--accent);color:#000;box-shadow:0 0 18px var(--glow)}
+  button.btn:disabled{opacity:.4;cursor:default;background:transparent;color:var(--dim);border-color:var(--border2);box-shadow:none}
+  button.btn.ghost{color:var(--dim);border-color:var(--border2)}
+  button.btn.ghost:hover{color:var(--fg);border-color:var(--fg);background:transparent;box-shadow:none}
+  button.btn:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+
+  label.field{font-size:12.5px;color:var(--dim);display:flex;align-items:center;gap:7px}
+  input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px}
+  select,input[type=number],input[type=text]{font-family:var(--mono);font-size:13px;background:var(--bg2);color:var(--fg);
+    border:1px solid var(--border2);border-radius:5px;padding:8px 10px;caret-color:var(--accent)}
+  select:focus,input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 14px var(--glow)}
+  .hint{font-size:12.5px;color:var(--dim)}
+  .hint b{color:var(--fg)}
+
+  .progress{height:4px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;overflow:hidden;margin:4px 0 14px;display:none}
   .progress.on{display:block}
-  .progress > i{display:block;height:100%;width:0;background:var(--accent);transition:width .12s linear}
-  .statusline{font-size:12.5px;color:var(--muted);font-family:var(--mono);min-height:1.2em;margin-bottom:10px}
+  .progress > i{display:block;height:100%;width:0;background:var(--accent);box-shadow:0 0 12px var(--glow);transition:width .12s linear}
+  .statusline{font-size:12.5px;color:var(--dim);min-height:1.3em;margin-bottom:12px}
+  .statusline::before{content:"$ ";color:var(--accent)}
 
-  .tblwrap{overflow-x:auto;border:1px solid var(--hair);border-radius:11px;box-shadow:var(--shadow);background:var(--panel)}
-  table{border-collapse:collapse;width:100%;font-size:13.5px}
-  thead th{text-align:left;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
-    font-weight:600;padding:11px 14px;border-bottom:1px solid var(--hair);white-space:nowrap;position:sticky;top:0;background:var(--panel)}
+  .tblwrap{overflow-x:auto;border:1px solid var(--border2);border-radius:6px;background:var(--bg2)}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  thead th{text-align:left;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
+    font-weight:600;padding:10px 14px;border-bottom:1px solid var(--border2);white-space:nowrap;
+    position:sticky;top:0;background:var(--raised)}
   th.num,td.num{text-align:right}
-  tbody td{padding:8px 14px;border-bottom:1px solid var(--hair);vertical-align:middle}
+  tbody td{padding:7px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
   tbody tr:last-child td{border-bottom:0}
-  tbody tr:hover{background:var(--accent-soft)}
-  td.mode{font-family:var(--mono);color:var(--amber);font-size:12.5px;white-space:nowrap}
-  td.name{font-weight:520;white-space:nowrap}
-  td.hash{font-family:var(--mono);font-size:11.5px;word-break:break-all;color:var(--muted);max-width:560px}
-  td.hps{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .rank{font-family:var(--mono);color:var(--muted);font-size:12px}
-  .barcell{width:34%;min-width:120px}
-  .bar{height:8px;border-radius:99px;background:var(--bar);min-width:2px}
-  .pill{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:1px 7px;border-radius:99px;border:1px solid var(--hair);color:var(--muted)}
-  .pill.fast{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,var(--hair))}
+  tbody tr:hover{background:rgba(0,255,156,.06)}
+  :root[data-phosphor="amber"] tbody tr:hover{background:rgba(255,180,74,.07)}
+  td.mode{color:var(--modecol);font-size:12.5px;white-space:nowrap}
+  td.mode::before{content:"-m ";color:var(--dim)}
+  td.name{color:var(--fg);white-space:nowrap}
+  td.hash{font-size:11.5px;word-break:break-all;color:var(--dim);max-width:560px}
+  td.hps{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--accent)}
+  .rank{color:var(--dim);font-size:12px}
+  .barcell{width:32%;min-width:110px}
+  .bar{height:7px;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));min-width:2px;box-shadow:0 0 10px var(--glow)}
+  .pill{display:inline-block;font-size:10px;padding:1px 7px;border-radius:3px;border:1px solid var(--border2);color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+  .pill.fast{color:var(--good);border-color:var(--good)}
 
-  textarea{width:100%;min-height:90px;font-family:var(--mono);font-size:13.5px;background:var(--panel);color:var(--ink);
-    border:1px solid var(--hair);border-radius:10px;padding:12px 14px;resize:vertical;line-height:1.5}
-  textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
-  .results{margin-top:18px}
-  .match{display:flex;align-items:baseline;gap:12px;padding:10px 14px;border:1px solid var(--hair);border-radius:9px;background:var(--panel);margin-bottom:8px;box-shadow:var(--shadow)}
-  .match .m-mode{font-family:var(--mono);color:var(--amber);font-size:13px;min-width:70px}
-  .match .m-name{font-weight:560}
+  textarea{width:100%;min-height:88px;font-family:var(--mono);font-size:13.5px;background:var(--bg2);color:var(--fg);
+    border:1px solid var(--border2);border-radius:6px;padding:11px 13px;resize:vertical;line-height:1.5;caret-color:var(--accent)}
+  .results{margin-top:16px}
+  .match{display:flex;align-items:baseline;gap:12px;padding:9px 13px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);margin-bottom:7px}
+  .match:hover{border-color:var(--accent)}
+  .match .m-mode{color:var(--modecol);font-size:13px;min-width:64px}
+  .match .m-name{color:var(--fg)}
   .match .m-flags{margin-left:auto;display:flex;gap:6px}
-  .empty{color:var(--muted);font-size:13.5px;padding:14px;border:1px dashed var(--hair);border-radius:9px;text-align:center}
-  .examples{margin-top:14px;font-size:12.5px;color:var(--muted)}
-  .examples code{font-family:var(--mono);background:var(--code-bg);padding:2px 6px;border-radius:5px;cursor:pointer}
-  .examples code:hover{color:var(--accent)}
+  .empty{color:var(--dim);font-size:13px;padding:14px;border:1px dashed var(--border2);border-radius:6px;text-align:center}
+  .empty::before{content:"// ";color:var(--red)}
+  .examples{margin-top:14px;font-size:12.5px;color:var(--dim)}
+  .examples code{background:var(--bg2);border:1px solid var(--border);padding:2px 7px;border-radius:4px;cursor:pointer;color:var(--fg)}
+  .examples code:hover{color:var(--accent);border-color:var(--accent);text-shadow:0 0 6px var(--glow)}
 
-  .themebtn{position:fixed;top:14px;right:16px;background:var(--panel);border:1px solid var(--hair);color:var(--muted);
-    border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:11px;cursor:pointer;box-shadow:var(--shadow);z-index:5}
-  footer{margin-top:40px;padding-top:22px;border-top:1px solid var(--hair);color:var(--muted);font-size:12.5px}
-  .load-err{background:#c0392b18;border:1px solid #c0392b55;color:var(--ink);padding:14px 16px;border-radius:10px;margin:20px 0}
+  footer{margin-top:26px;color:var(--dim);font-size:12px}
+  footer::before{content:"# ";color:var(--accent)}
+  .load-err{background:rgba(255,95,95,.08);border:1px solid var(--red);color:var(--fg);padding:14px 16px;border-radius:6px;margin:18px 0}
+  .load-err b{color:var(--red)}
+  .load-err code{background:var(--bg2);padding:1px 6px;border-radius:4px;color:var(--accent)}
+
+  /* crack tab */
+  .wordlists{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 16px}
+  .wl-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--fg);border:1px solid var(--border2);
+    border-radius:5px;padding:6px 11px;background:var(--bg2);cursor:pointer;user-select:none}
+  .wl-item:hover{border-color:var(--accent)}
+  .wl-item input{accent-color:var(--accent);width:14px;height:14px}
+  .wl-item .wl-count{color:var(--dim);font-size:11px}
+  button.btn.sm{padding:5px 10px;font-size:11px}
+  .tasks{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  .task{border:1px solid var(--border2);border-radius:6px;background:var(--bg2);padding:11px 13px}
+  .task.done{border-color:var(--accent);box-shadow:0 0 16px var(--glow)}
+  .task-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px}
+  .task-id{color:var(--accent);font-weight:700}
+  .task-mode{color:var(--modecol);font-size:12.5px}
+  .task-mode .thash{color:var(--dim)}
+  .task-status{color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+    border:1px solid var(--border2);border-radius:3px;padding:1px 8px;white-space:nowrap}
+  .task.done .task-status{color:var(--accent);border-color:var(--accent)}
+  .task-status.err{color:var(--red);border-color:var(--red)}
+  .task-btns{margin-left:auto;display:flex;gap:7px}
+  .task .progress{margin:9px 0 8px;display:block}
+  .task-meta{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--dim)}
+  .task-meta b{color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}
+  .task-meta .cracked b{color:var(--accent);text-shadow:0 0 6px var(--glow)}
+  .pot{margin:2px 0 14px}
+  .pot-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--dim);
+    border:1px solid var(--accent);border-radius:5px 5px 0 0;background:var(--bg2);padding:8px 12px}
+  .pot-head b{color:var(--accent);text-shadow:0 0 6px var(--glow)}
+  .pot-btns{margin-left:auto;display:flex;gap:7px}
+  .pot-list{border:1px solid var(--accent);border-top:0;border-radius:0 0 5px 5px;background:var(--bg);
+    padding:10px 12px;max-height:190px;overflow:auto;font-size:12px;color:var(--fg);word-break:break-all;line-height:1.7}
+
+  @media (prefers-reduced-motion: no-preference){
+    .cursor{animation:blink 1.05s steps(1) infinite}
+    @keyframes blink{50%{opacity:0}}
+    body::before{animation:flick 6s steps(2) infinite}
+    @keyframes flick{0%,97%,100%{opacity:.55}98%{opacity:.42}}
+  }
+  @media (max-width:600px){
+    body{font-size:13.5px}
+    .wrap{padding:12px 9px 54px}
+    .screen{padding:16px 12px}
+    .titlebar{padding:8px 10px}
+    .titlebar .ttl{display:none}
+    .banner{font-size:clamp(30px,12vw,52px)}
+    .tagline{font-size:12px;margin-bottom:16px}
+    .bootlog{padding:7px 10px}
+    .bl-msg{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tabs{gap:6px}
+    .tab{flex:1 1 42%;text-align:center;min-height:40px;padding:9px 6px}
+    .controls{gap:9px}
+    button.btn{padding:11px 14px}
+    label.field{flex-wrap:wrap}
+    select,input[type=text],input[type=number]{max-width:100%;min-width:0}
+    #pwin{min-width:0 !important;flex:1 1 150px}
+    #crack-mode{flex:1;min-width:0}
+    .task-head{gap:8px}
+    .task-btns{margin-left:0;width:100%}
+    .task-btns .btn{flex:1}
+    .task-meta{gap:10px 14px}
+    .pot-btns{margin-left:0;width:100%}
+    .pot-btns .btn{flex:1}
+    .pot-list{max-height:150px}
+  }
 </style>
 </head>
 <body>
-<button class="themebtn" id="themebtn" aria-label="Toggle theme">◐ theme</button>
 <div class="wrap">
-  <header class="hero">
-    <span class="eyebrow">pure-javascript · runs entirely in your browser</span>
-    <h1><b>crack</b>-js</h1>
-    <p class="lede">A hashcat-format hash toolkit in pure JavaScript — verify, identify, generate,
-      and benchmark hundreds of hash modes with no server and no dependencies beyond crypto-js.</p>
-    <div class="stats" id="stats"></div>
-  </header>
+  <div class="terminal">
+    <div class="titlebar">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span class="ttl">root@crack-js: ~/bin — hashcat-format toolkit — tty1</span>
+      <button class="phosphor-btn" id="themebtn" aria-label="Toggle phosphor color">◉ phosphor</button>
+    </div>
+    <div class="screen">
+      <h1 class="banner"><span>crack</span><span class="sep">-</span><span>js</span><span class="cursor">█</span></h1>
+      <p class="tagline">pure-javascript hashcat-format engine — <b>verify · identify · generate · benchmark</b>
+        hundreds of hash modes with no server and no dependency beyond crypto-js. everything below runs in your browser.</p>
 
-  <div class="tabs" role="tablist">
-    <button class="tab" id="tab-speed" role="tab" aria-selected="true" aria-controls="panel-speed">⚡ Speed benchmark</button>
-    <button class="tab" id="tab-id" role="tab" aria-selected="false" aria-controls="panel-id">🔎 Identify hash</button>
-    <button class="tab" id="tab-gen" role="tab" aria-selected="false" aria-controls="panel-gen">🔑 Generate</button>
+      <div class="bootlog" id="stats"></div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab" id="tab-speed" role="tab" aria-selected="true" aria-controls="panel-speed">benchmark</button>
+        <button class="tab" id="tab-id" role="tab" aria-selected="false" aria-controls="panel-id">identify</button>
+        <button class="tab" id="tab-gen" role="tab" aria-selected="false" aria-controls="panel-gen">generate</button>
+        <button class="tab" id="tab-crack" role="tab" aria-selected="false" aria-controls="panel-crack">crack</button>
+      </div>
+
+      <!-- SPEED -->
+      <section class="panel active" id="panel-speed" role="tabpanel" aria-labelledby="tab-speed">
+        <div class="controls">
+          <button class="btn" id="run-bench">benchmark</button>
+          <button class="btn ghost" id="stop-bench" disabled>stop</button>
+          <label class="field">time/type
+            <select id="dur"><option value="100">100 ms</option><option value="250" selected>250 ms</option><option value="500">500 ms</option><option value="1000">1 s</option></select>
+          </label>
+          <label class="field"><input type="checkbox" id="fastonly"> fast modes only</label>
+        </div>
+        <div class="progress" id="prog"><i></i></div>
+        <div class="statusline" id="bench-status">./benchmark --all &nbsp; # measures calculation throughput (hashes/sec) for every mode, in-browser. hit [ benchmark ]</div>
+        <div class="tblwrap" id="speed-tblwrap" style="display:none">
+          <table>
+            <thead><tr><th>#</th><th>Mode</th><th>Name</th><th class="num">Hashes / sec</th><th>Relative</th></tr></thead>
+            <tbody id="speed-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- IDENTIFY -->
+      <section class="panel" id="panel-id" role="tabpanel" aria-labelledby="tab-id">
+        <label for="hashin" class="hint" style="display:block;margin-bottom:8px">./identify &nbsp; # paste a hash — it is matched against every known format:</label>
+        <textarea id="hashin" placeholder="e.g.  5f4dcc3b5aa765d61d8327deb882cf99"></textarea>
+        <div class="controls" style="margin-top:12px">
+          <button class="btn" id="run-id">identify</button>
+          <button class="btn ghost" id="clear-id">clear</button>
+        </div>
+        <div class="examples">try:
+          <code data-h="5f4dcc3b5aa765d61d8327deb882cf99">md5</code>
+          <code data-h="5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8">sha1</code>
+          <code data-h="$2a$05$/VT2Xs2dMd8GJKfrXhjYP.DkTjOVrY12yDN7/6I8ZV0q/1lEohLru">bcrypt</code>
+          <code data-h="$1$28772684$iEwNOgGugqO9.bIz5sk8k/">md5crypt</code>
+          <code data-h="7196759210defdc0">mysql323</code>
+        </div>
+        <div class="results" id="id-results"></div>
+      </section>
+
+      <!-- GENERATE -->
+      <section class="panel" id="panel-gen" role="tabpanel" aria-labelledby="tab-gen">
+        <label for="pwin" class="hint" style="display:block;margin-bottom:8px">./generate &nbsp; # emit a valid hash of your password in every generatable mode:</label>
+        <div class="controls">
+          <span class="prompt">root@crack-js:~$ <b>echo -n</b></span>
+          <input type="text" id="pwin" value="hashcat" spellcheck="false" autocomplete="off" style="min-width:220px">
+          <button class="btn" id="run-gen">generate</button>
+          <label class="field"><input type="text" id="filtergen" placeholder="grep name/mode…" style="min-width:150px"></label>
+        </div>
+        <div class="progress" id="gprog"><i></i></div>
+        <div class="statusline" id="gen-status">enter a password and run — crack-js emits a valid hash for it in each generatable mode.</div>
+        <div class="tblwrap" id="gen-tblwrap" style="display:none">
+          <table><thead><tr><th>Mode</th><th>Name</th><th>Hash</th></tr></thead><tbody id="gen-body"></tbody></table>
+        </div>
+      </section>
+
+      <!-- CRACK -->
+      <section class="panel" id="panel-crack" role="tabpanel" aria-labelledby="tab-crack">
+        <label for="crack-hashes" class="hint" style="display:block;margin-bottom:8px">./crack &nbsp; # paste target hashes (one per line), choose a mode + wordlists, then launch a job:</label>
+        <textarea id="crack-hashes" placeholder="5f4dcc3b5aa765d61d8327deb882cf99&#10;5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8"></textarea>
+        <div class="controls" style="margin-top:12px">
+          <label class="field">mode
+            <select id="crack-mode"><option value="auto">auto-detect</option></select>
+          </label>
+          <button class="btn ghost" id="crack-upload">+ wordlist</button>
+          <input type="file" id="crack-file" accept=".txt,.lst,.dic,text/plain" multiple style="display:none">
+          <button class="btn" id="run-crack">crack</button>
+        </div>
+        <div class="wordlists" id="crack-wordlists"></div>
+        <div class="statusline" id="crack-status">each job runs in the background — launch as many as you like. every task shows live progress + speed, and a HASH:PASSWORD download when it finds something. recovered pairs are saved in this browser.</div>
+        <div class="pot" id="crack-pot"></div>
+        <div class="tasks" id="crack-tasks"></div>
+      </section>
+
+      <footer id="footer">booting crack-js…</footer>
+    </div>
   </div>
-
-  <!-- SPEED -->
-  <section class="panel active" id="panel-speed" role="tabpanel" aria-labelledby="tab-speed">
-    <div class="controls">
-      <button class="btn" id="run-bench">Measure speed</button>
-      <button class="btn ghost" id="stop-bench" disabled>Stop</button>
-      <label class="field">time / type
-        <select id="dur"><option value="100">100 ms</option><option value="250" selected>250 ms</option><option value="500">500 ms</option><option value="1000">1 s</option></select>
-      </label>
-      <label class="field"><input type="checkbox" id="fastonly"> fast modes only</label>
-    </div>
-    <div class="progress" id="prog"><i></i></div>
-    <div class="statusline" id="bench-status">Click “Measure speed” to benchmark hash calculation throughput (hashes/second) for every mode, in your browser.</div>
-    <div class="tblwrap" id="speed-tblwrap" style="display:none">
-      <table>
-        <thead><tr><th>#</th><th>Mode</th><th>Name</th><th class="num">Hashes / sec</th><th>Relative</th></tr></thead>
-        <tbody id="speed-body"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- IDENTIFY -->
-  <section class="panel" id="panel-id" role="tabpanel" aria-labelledby="tab-id">
-    <label for="hashin" class="hint" style="display:block;margin-bottom:8px">Paste a hash to see which modes it could be:</label>
-    <textarea id="hashin" placeholder="e.g.  5f4dcc3b5aa765d61d8327deb882cf99"></textarea>
-    <div class="controls" style="margin-top:12px">
-      <button class="btn" id="run-id">Identify</button>
-      <button class="btn ghost" id="clear-id">Clear</button>
-    </div>
-    <div class="examples">Try:
-      <code data-h="5f4dcc3b5aa765d61d8327deb882cf99">md5</code>
-      <code data-h="5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8">sha1</code>
-      <code data-h="$2a$05/VT2Xs2dMd8GJKfrXhjYP.DkTjOVrY12yDN7/6I8ZV0q/1lEohLru">bcrypt</code>
-      <code data-h="$1$28772684$iEwNOgGugqO9.bIz5sk8k/">md5crypt</code>
-      <code data-h="7196759210defdc0">mysql323</code>
-    </div>
-    <div class="results" id="id-results"></div>
-  </section>
-
-  <!-- GENERATE -->
-  <section class="panel" id="panel-gen" role="tabpanel" aria-labelledby="tab-gen">
-    <label for="pwin" class="hint" style="display:block;margin-bottom:8px">Enter a password to generate its hash in every supported mode:</label>
-    <div class="controls">
-      <input type="text" id="pwin" value="hashcat" spellcheck="false" autocomplete="off"
-        style="font-family:var(--mono);font-size:14px;background:var(--panel);color:var(--ink);border:1px solid var(--hair);border-radius:8px;padding:10px 12px;min-width:240px">
-      <button class="btn" id="run-gen">Generate hashes</button>
-      <label class="field"><input type="text" id="filtergen" placeholder="filter by name…" style="min-width:150px"></label>
-    </div>
-    <div class="progress" id="gprog"><i></i></div>
-    <div class="statusline" id="gen-status">Enter a password and click Generate — crack-js produces a valid hash for it in each of the generatable modes.</div>
-    <div class="tblwrap" id="gen-tblwrap" style="display:none">
-      <table><thead><tr><th>Mode</th><th>Name</th><th>Hash</th></tr></thead><tbody id="gen-body"></tbody></table>
-    </div>
-  </section>
-
-  <footer id="footer">Loading crack-js…</footer>
 </div>
 
 <script src="dist/crack.js"></script>
@@ -179,41 +325,47 @@
   var C = window.crack;
   var $ = function(id){ return document.getElementById(id); };
 
-  // ---- theme toggle ----
+  // ---- phosphor toggle (green <-> amber CRT) ----
   $('themebtn').addEventListener('click', function(){
-    var cur = document.documentElement.getAttribute('data-theme');
-    if(!cur) cur = matchMedia('(prefers-color-scheme:dark)').matches ? 'dark':'light';
-    document.documentElement.setAttribute('data-theme', cur==='dark'?'light':'dark');
+    var cur = document.documentElement.getAttribute('data-phosphor') || 'green';
+    document.documentElement.setAttribute('data-phosphor', cur === 'amber' ? 'green' : 'amber');
   });
 
   // ---- library guard ----
   if(!C || typeof C.measureSpeed !== 'function' || !Array.isArray(C.hashTypes)){
-    document.querySelector('.wrap').insertAdjacentHTML('afterbegin',
-      '<div class="load-err"><b>crack-js failed to load.</b> Make sure <code>dist/crack.js</code> is present next to this page (run <code>npm run build</code>). This page must be served over http(s), not opened as a file:// URL.</div>');
+    document.querySelector('.screen').insertAdjacentHTML('afterbegin',
+      '<div class="load-err"><b>crack-js failed to load.</b> Make sure <code>dist/crack.js</code> sits next to this page (run <code>npm run build</code>), and serve over http(s) — e.g. GitHub Pages — not a file:// URL.</div>');
     $('footer').textContent = 'crack-js not loaded.';
     return;
   }
 
-  // ---- header stats ----
+  // ---- boot log / stats ----
   var gen = C.hashTypes.filter(function(t){return t.generatable;}).length;
   var fast = C.hashTypes.filter(function(t){return t.fast;}).length;
-  $('stats').innerHTML =
-    '<div class="stat"><b>'+C.hashTypes.length+'</b><span>hash modes</span></div>'+
-    '<div class="stat"><b>'+gen+'</b><span>generatable</span></div>'+
-    '<div class="stat"><b>'+fast+'</b><span>single-shot</span></div>';
-  $('footer').innerHTML = 'crack-js · '+C.hashTypes.length+' modes · verify · identify · generate · benchmark — 100% client-side. <a href="https://github.com/zzzteph/crack-js">source</a>';
+  var boot = [
+    ['loading hash registry',   C.hashTypes.length + ' modes'],
+    ['arming generators',       gen + ' online'],
+    ['single-shot cores',       fast + ' ready'],
+    ['backend / dependencies',  '0 — client-side']
+  ];
+  $('stats').innerHTML = boot.map(function(b){
+    return '<div class="bootline"><span class="bl-msg">'+b[0]+'</span><span class="bl-ok">[ '+b[1]+' ]</span></div>';
+  }).join('');
+  $('footer').innerHTML = 'crack-js · '+C.hashTypes.length+' modes · verify · identify · generate · benchmark — 100% client-side · <a href="https://github.com/zzzteph/crack-js">github.com/zzzteph/crack-js</a>';
 
   // ---- tabs ----
   function selectTab(which){
-    ['speed','id','gen'].forEach(function(k){
+    ['speed','id','gen','crack'].forEach(function(k){
       var t=$('tab-'+k), p=$('panel-'+k), on=(k===which);
       t.setAttribute('aria-selected', on?'true':'false');
       p.classList.toggle('active', on);
     });
   }
-  $('tab-speed').addEventListener('click', function(){selectTab('speed');});
-  $('tab-id').addEventListener('click', function(){selectTab('id');});
-  $('tab-gen').addEventListener('click', function(){selectTab('gen');});
+  var TABS=['speed','id','gen','crack'];
+  TABS.forEach(function(k){ $('tab-'+k).addEventListener('click', function(){ selectTab(k); if(history.replaceState) history.replaceState(null,'','#'+k); }); });
+  function tabFromHash(){ var h=(location.hash||'').replace('#',''); if(TABS.indexOf(h)>=0) selectTab(h); }
+  window.addEventListener('hashchange', tabFromHash);
+  tabFromHash();
 
   function escapeHtml(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 
@@ -239,7 +391,7 @@
       if(hps!=null) results.push({mode:t.mode,name:t.name,hps:hps,fast:t.fast});
       i++;
       $('prog').firstChild.style.width=(100*i/list.length)+'%';
-      $('bench-status').textContent='Measuring '+i+' / '+list.length+' · '+t.name+' …';
+      $('bench-status').textContent='measuring '+i+' / '+list.length+' · '+t.name+' …';
       render(results);
       setTimeout(step,0); // yield so the UI paints between (blocking) measurements
     }
@@ -247,7 +399,7 @@
       benchRunning=false;
       $('run-bench').disabled=false; $('stop-bench').disabled=true;
       $('prog').classList.remove('on');
-      $('bench-status').textContent='Done — '+results.length+' modes measured ('+dur+' ms each). Fastest: '+
+      $('bench-status').textContent='done — '+results.length+' modes measured ('+dur+' ms each). fastest: '+
         (results.length?results.slice().sort(function(a,b){return b.hps-a.hps;})[0].name:'—')+'.';
     }
     step();
@@ -275,11 +427,11 @@
   function runIdentify(){
     var h=$('hashin').value.trim();
     var out=$('id-results');
-    if(!h){ out.innerHTML='<div class="empty">Enter a hash above.</div>'; return; }
+    if(!h){ out.innerHTML='<div class="empty">enter a hash above.</div>'; return; }
     var names=[];
     try{ names=C.getPossibleHashTypes(h); }catch(e){ names=[]; }
-    if(!names.length){ out.innerHTML='<div class="empty">No known mode matches that format.</div>'; return; }
-    var html='<div class="hint" style="margin-bottom:10px">'+names.length+' possible '+(names.length===1?'type':'types')+':</div>';
+    if(!names.length){ out.innerHTML='<div class="empty">no known mode matches that format.</div>'; return; }
+    var html='<div class="hint" style="margin-bottom:10px"><b>'+names.length+'</b> possible '+(names.length===1?'type':'types')+':</div>';
     names.forEach(function(n){
       var t=C.hashTypes.filter(function(x){return x.name===n;})[0]||{};
       html+='<div class="match"><span class="m-mode">-m '+modeOf(n)+'</span>'+
@@ -309,7 +461,7 @@
     function step(){
       if(i>=modes.length){
         genRunning=false; $('run-gen').disabled=false; $('gprog').classList.remove('on'); renderGen();
-        $('gen-status').textContent=genAll.length+' hashes generated for “'+pw+'”. Modes needing a specific input length are skipped.';
+        $('gen-status').textContent=genAll.length+' hashes generated for "'+pw+'". modes needing a specific input length are skipped.';
         return;
       }
       var m=modes[i], h=null;
@@ -318,7 +470,7 @@
       i++;
       if(i%15===0 || i===modes.length){
         $('gprog').firstChild.style.width=(100*i/modes.length)+'%';
-        $('gen-status').textContent='Generating '+i+' / '+modes.length+' …';
+        $('gen-status').textContent='generating '+i+' / '+modes.length+' …';
         renderGen();
       }
       setTimeout(step,0);
@@ -335,6 +487,178 @@
   }
   $('filtergen').addEventListener('input', renderGen);
   $('pwin').addEventListener('keydown', function(e){ if(e.key==='Enter') $('run-gen').click(); });
+
+  // ---- crack (dictionary-attack task manager) ----
+  // mode selector: auto-detect + every hash type
+  (function(){
+    var opts='';
+    C.hashTypes.slice().sort(function(a,b){return a.mode-b.mode;}).forEach(function(t){
+      opts+='<option value="'+t.mode+'">'+escapeHtml(t.name)+'  (-m '+t.mode+')</option>';
+    });
+    $('crack-mode').insertAdjacentHTML('beforeend', opts);
+  })();
+
+  // persistent potfile — recovered HASH:PASSWORD pairs survive reloads
+  var POT_KEY='crackjs.pot.v1', POT={};
+  try{ POT=JSON.parse(localStorage.getItem(POT_KEY))||{}; }catch(e){ POT={}; }
+  function savePot(){ try{ localStorage.setItem(POT_KEY, JSON.stringify(POT)); }catch(e){} }
+  function potAdd(hash, password){ if(!(hash in POT)){ POT[hash]=password; savePot(); renderPot(); } }
+  function potPairs(){ return Object.keys(POT).map(function(h){ return h+':'+POT[h]; }); }
+  function potDownload(){
+    var blob=new Blob([potPairs().join('\n')+'\n'],{type:'text/plain'}), url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download='cracked-all.txt';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); },1500);
+  }
+  function renderPot(){
+    var el=$('crack-pot'), n=Object.keys(POT).length;
+    if(!n){ el.innerHTML=''; return; }
+    el.innerHTML='<div class="pot-head">recovered <b>'+n+'</b> · saved in this browser'+
+      '<span class="pot-btns"><button class="btn sm" id="pot-dl">download all</button>'+
+      '<button class="btn ghost sm" id="pot-clear">clear</button></span></div>'+
+      '<div class="pot-list">'+ potPairs().map(function(p){ return escapeHtml(p); }).join('<br>') +'</div>';
+    $('pot-dl').addEventListener('click', potDownload);
+    $('pot-clear').addEventListener('click', function(){
+      if(confirm('Clear all '+Object.keys(POT).length+' saved results from this browser?')){ POT={}; savePot(); renderPot(); }
+    });
+  }
+  renderPot();
+
+  var WORDLISTS=[], wlSeq=0;
+  function wlById(id){ for(var i=0;i<WORDLISTS.length;i++) if(WORDLISTS[i].id===id) return WORDLISTS[i]; return null; }
+  function addWordlist(name, words, builtin, checked){
+    var seen=Object.create(null), clean=[];
+    for(var i=0;i<words.length;i++){ var w=words[i]; if(w!=null && w!=='' && seen[w]===undefined){ seen[w]=1; clean.push(w); } }
+    WORDLISTS.push({id:'wl'+(wlSeq++), name:name, words:clean, builtin:!!builtin, checked:checked!==false});
+    renderWordlists();
+  }
+  function renderWordlists(){
+    $('crack-wordlists').innerHTML=WORDLISTS.map(function(wl){
+      return '<label class="wl-item"><input type="checkbox" data-wl="'+wl.id+'"'+(wl.checked?' checked':'')+'>'+
+        escapeHtml(wl.name)+' <span class="wl-count">'+wl.words.length.toLocaleString('en-US')+'</span></label>';
+    }).join('');
+    Array.prototype.forEach.call($('crack-wordlists').querySelectorAll('input[data-wl]'), function(cb){
+      cb.addEventListener('change', function(){ var wl=wlById(cb.getAttribute('data-wl')); if(wl) wl.checked=cb.checked; });
+    });
+  }
+  function selectedWords(){ var out=[]; WORDLISTS.forEach(function(wl){ if(wl.checked) out=out.concat(wl.words); }); return out; }
+
+  var COMMON=("password 123456 123456789 12345678 12345 1234567 1234567890 qwerty abc123 password1 "+
+    "password123 iloveyou admin administrator root toor guest test test123 welcome welcome1 login "+
+    "passw0rd p@ssw0rd letmein monkey dragon sunshine princess football baseball soccer hockey shadow "+
+    "master superman batman trustno1 hunter hashcat crackme 000000 111111 121212 123123 654321 666666 "+
+    "696969 777777 888888 999999 555555 zxcvbn qwertyuiop 1q2w3e4r 1qaz2wsx qazwsx qwe123 asdf asdfgh "+
+    "asdfghjkl zxcvbnm ninja azerty michael jessica jennifer michelle daniel charlie robert thomas "+
+    "joshua andrew joseph william matthew hannah nicole ashley amanda summer winter spring autumn "+
+    "january february freedom whatever computer internet samsung google apple starwars pokemon nirvana "+
+    "metallica slipknot spongebob liverpool arsenal chelsea barcelona jordan harley ranger buster tigger "+
+    "george pepper cheese ginger maggie jasmine taylor jesus hello hello123 helloworld changeme secret "+
+    "access money mustang camaro corvette diamond ferrari porsche silver golden angel love lovely sexy "+
+    "chocolate cookie flower orange purple yellow rainbow monster dexter oliver bailey rocky lucky bandit "+
+    "smokey midnight scooter snoopy garfield bella lucy max coffee peanut cowboy eagle falcon phoenix "+
+    "viking samurai warrior wizard killer eminem blink182 greenday 2020 2021 2022 2023 2024 2025 "+
+    "summer2021 winter2022 spring2023 admin1 admin123 root123 letmein1 monkey123 dragon123 football1 "+
+    "baseball1 shadow1 qwerty123 abc123456 iloveyou1 princess1 superman1 batman123").split(/\s+/);
+  addWordlist('common passwords', COMMON, true, true);
+  var PINS=[]; for(var pi=0; pi<10000; pi++){ PINS.push(('000'+pi).slice(-4)); }
+  addWordlist('4-digit PINs (0000–9999)', PINS, true, false);
+
+  $('crack-upload').addEventListener('click', function(){ $('crack-file').click(); });
+  $('crack-file').addEventListener('change', function(){
+    Array.prototype.forEach.call(this.files, function(f){
+      var rd=new FileReader();
+      rd.onload=function(){ addWordlist(f.name, String(rd.result).split(/\r?\n/), false, true); };
+      rd.readAsText(f);
+    });
+    this.value='';
+  });
+
+  var taskSeq=0;
+  $('run-crack').addEventListener('click', function(){
+    var raw=$('crack-hashes').value.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
+    var hashes=raw.filter(function(v,i,a){return a.indexOf(v)===i;});
+    if(!hashes.length){ $('crack-status').textContent='paste at least one hash to crack.'; return; }
+    var words=selectedWords();
+    if(!words.length){ $('crack-status').textContent='select (or upload) at least one wordlist.'; return; }
+
+    var msel=$('crack-mode').value, mode, modeName, modeNum;
+    if(msel==='auto'){
+      var guess=[]; try{ guess=C.getPossibleHashTypes(hashes[0]); }catch(e){}
+      if(!guess.length){ $('crack-status').textContent='could not auto-detect the mode — pick one from the list.'; return; }
+      modeName=guess[0]; mode=guess[0];
+      var mt=C.hashTypes.filter(function(x){return x.name===modeName;})[0]; modeNum=mt?mt.mode:'?';
+    } else { mode=parseInt(msel,10); modeNum=mode; modeName=C.modeInfo[mode]||('mode '+mode); }
+
+    var task={id:++taskSeq, mode:mode, modeName:modeName, modeNum:modeNum, nhash:hashes.length,
+      total:words.length, tried:0, hps:0, cracked:0, hits:[], status:'running', worker:null, el:null};
+    createCard(task);
+    $('crack-status').textContent='task #'+task.id+' launched — '+modeName+' · '+hashes.length+' hash'+(hashes.length>1?'es':'')+' · '+words.length.toLocaleString('en-US')+' candidates.';
+
+    var wk;
+    try{ wk=new Worker('crack-worker.js'); }
+    catch(err){ task.status='error'; task.err='Web Workers need http(s) — deploy to GitHub Pages'; updateCard(task); return; }
+    task.worker=wk;
+    wk.onmessage=function(ev){ onTaskMsg(task, ev.data); };
+    wk.onerror=function(er){ task.status='error'; task.err=(er&&er.message)||'worker failed to load'; updateCard(task); };
+    wk.postMessage({mode:mode, words:words, hashes:hashes});
+  });
+
+  function onTaskMsg(task, m){
+    if(m.type==='hit'){ task.hits.push({hash:m.hash, password:m.password}); task.cracked=task.hits.length; potAdd(m.hash, m.password); updateCard(task); }
+    else if(m.type==='progress'){ task.tried=m.tried; task.total=m.total; task.hps=m.hps;
+      if(typeof m.cracked==='number' && m.cracked>task.cracked) task.cracked=m.cracked; updateCard(task); }
+    else if(m.type==='done'){ task.status='done'; task.tried=m.tried;
+      if(task.worker){ task.worker.terminate(); task.worker=null; } updateCard(task); }
+  }
+
+  function createCard(task){
+    var d=document.createElement('div'); d.className='task'; d.id='task-'+task.id;
+    d.innerHTML=
+      '<div class="task-head">'+
+        '<span class="task-id">#'+task.id+'</span>'+
+        '<span class="task-mode">-m '+escapeHtml(String(task.modeNum))+' '+escapeHtml(String(task.modeName))+' · <span class="thash">'+task.nhash+' hash'+(task.nhash>1?'es':'')+'</span></span>'+
+        '<span class="task-status">running</span>'+
+        '<span class="task-btns">'+
+          '<button class="btn ghost sm" data-act="stop">stop</button>'+
+          '<button class="btn sm" data-act="dl" disabled>download</button>'+
+        '</span>'+
+      '</div>'+
+      '<div class="progress on"><i></i></div>'+
+      '<div class="task-meta">'+
+        '<span>tried <b class="m-tried">0</b> / '+task.total.toLocaleString('en-US')+'</span>'+
+        '<span><b class="m-hps">0</b> H/s</span>'+
+        '<span class="cracked">cracked <b class="m-cracked">0</b> / '+task.nhash+'</span>'+
+      '</div>';
+    $('crack-tasks').insertBefore(d, $('crack-tasks').firstChild);
+    task.el=d;
+    d.querySelector('[data-act="stop"]').addEventListener('click', function(){ stopTask(task); });
+    d.querySelector('[data-act="dl"]').addEventListener('click', function(){ downloadTask(task); });
+  }
+
+  function updateCard(task){
+    var d=task.el; if(!d) return;
+    var pct=task.total? Math.round(100*task.tried/task.total):0;
+    d.querySelector('.progress > i').style.width=(task.status==='done'?100:pct)+'%';
+    d.querySelector('.m-tried').textContent=task.tried.toLocaleString('en-US');
+    d.querySelector('.m-hps').textContent=task.hps.toLocaleString('en-US');
+    d.querySelector('.m-cracked').textContent=task.cracked;
+    var st=d.querySelector('.task-status');
+    if(task.status==='error'){ st.textContent=task.err||'error'; st.className='task-status err'; }
+    else { st.textContent=task.status; st.className='task-status'; }
+    d.classList.toggle('done', task.status==='done');
+    d.querySelector('[data-act="dl"]').disabled=!task.hits.length;
+    d.querySelector('[data-act="stop"]').disabled=(task.status!=='running');
+  }
+
+  function stopTask(task){ if(task.worker){ task.worker.terminate(); task.worker=null; } if(task.status==='running') task.status='stopped'; updateCard(task); }
+
+  function downloadTask(task){
+    if(!task.hits.length) return;
+    var text=task.hits.map(function(h){ return h.hash+':'+h.password; }).join('\n')+'\n';
+    var blob=new Blob([text],{type:'text/plain'}), url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download='cracked-task'+task.id+'.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+  }
 })();
 </script>
 </body>

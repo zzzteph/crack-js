@@ -1,0 +1,20 @@
+# GitHub Pages / Jekyll configuration for the crack-js demo site.
+#
+# index.html is a self-contained static page (no front matter), so Jekyll
+# copies it verbatim — no theme or layout wraps it, and its inline JS is never
+# run through Liquid. Only the page and the library bundle ship to the site.
+
+title: crack-js
+description: >-
+  A hashcat-format hash toolkit in pure JavaScript — verify, identify,
+  generate, and benchmark hundreds of hash modes entirely in the browser.
+
+# Keep the built site to just the demo + the library bundle it loads.
+# (node_modules and dotfiles like .github/.gitignore are ignored by Jekyll.)
+exclude:
+  - README.md
+  - package.json
+  - package-lock.json
+  - test.js
+  - src
+  - readme_gen.js
