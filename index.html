@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>crack-js — hash toolkit</title>
+<style>
+  :root{
+    --paper:#f4f3ef; --panel:#fbfaf7; --ink:#191c22; --muted:#5c626c;
+    --accent:#0f7d74; --accent-soft:#0f7d7418; --amber:#9a5b12; --hair:#e2dfd6;
+    --code-bg:#eceae3; --bar:#0f7d74; --good:#127a2f; --shadow:0 1px 2px rgba(20,22,30,.05),0 8px 24px rgba(20,22,30,.06);
+    --mono:ui-monospace,"SFMono-Regular","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#101319; --panel:#171b22; --ink:#d9dce2; --muted:#8b929e;
+    --accent:#3fbdb2; --accent-soft:#3fbdb21e; --amber:#e0a458; --hair:#262b34;
+    --code-bg:#1b2027; --bar:#3fbdb2; --good:#4fbf6a; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+  }}
+  :root[data-theme="light"]{--paper:#f4f3ef;--panel:#fbfaf7;--ink:#191c22;--muted:#5c626c;--accent:#0f7d74;--accent-soft:#0f7d7418;--amber:#9a5b12;--hair:#e2dfd6;--code-bg:#eceae3;--bar:#0f7d74;--good:#127a2f;--shadow:0 1px 2px rgba(20,22,30,.05),0 8px 24px rgba(20,22,30,.06);}
+  :root[data-theme="dark"]{--paper:#101319;--panel:#171b22;--ink:#d9dce2;--muted:#8b929e;--accent:#3fbdb2;--accent-soft:#3fbdb21e;--amber:#e0a458;--hair:#262b34;--code-bg:#1b2027;--bar:#3fbdb2;--good:#4fbf6a;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px 80px}
+  a{color:var(--accent)}
+
+  header.hero{padding:44px 0 22px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+  h1{font-size:clamp(30px,5vw,42px);margin:12px 0 8px;letter-spacing:-.02em;font-weight:680}
+  h1 b{color:var(--accent)}
+  .lede{color:var(--muted);max-width:60ch;margin:0}
+  .stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .stat{background:var(--panel);border:1px solid var(--hair);border-radius:9px;padding:7px 12px;box-shadow:var(--shadow)}
+  .stat b{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:16px}
+  .stat span{font-size:11px;color:var(--muted);margin-left:6px}
+
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--hair);margin:26px 0 0}
+  .tab{appearance:none;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);
+    font-family:var(--sans);font-size:14.5px;font-weight:560;padding:11px 16px;cursor:pointer;margin-bottom:-1px}
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+  .panel{display:none;padding:26px 0 0}
+  .panel.active{display:block}
+
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:18px}
+  button.btn{appearance:none;background:var(--accent);color:#fff;border:none;border-radius:9px;padding:11px 20px;
+    font-family:var(--sans);font-size:14.5px;font-weight:600;cursor:pointer;box-shadow:var(--shadow)}
+  button.btn:hover{filter:brightness(1.06)}
+  button.btn:disabled{opacity:.55;cursor:default;filter:none}
+  button.btn.ghost{background:var(--panel);color:var(--ink);border:1px solid var(--hair)}
+  button.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  label.field{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:7px}
+  select,input[type=number]{font-family:var(--mono);font-size:13px;background:var(--panel);color:var(--ink);
+    border:1px solid var(--hair);border-radius:7px;padding:7px 9px}
+  .hint{font-size:12.5px;color:var(--muted)}
+
+  .progress{height:6px;background:var(--code-bg);border-radius:99px;overflow:hidden;margin:2px 0 16px;display:none}
+  .progress.on{display:block}
+  .progress > i{display:block;height:100%;width:0;background:var(--accent);transition:width .12s linear}
+  .statusline{font-size:12.5px;color:var(--muted);font-family:var(--mono);min-height:1.2em;margin-bottom:10px}
+
+  .tblwrap{overflow-x:auto;border:1px solid var(--hair);border-radius:11px;box-shadow:var(--shadow);background:var(--panel)}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  thead th{text-align:left;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    font-weight:600;padding:11px 14px;border-bottom:1px solid var(--hair);white-space:nowrap;position:sticky;top:0;background:var(--panel)}
+  th.num,td.num{text-align:right}
+  tbody td{padding:8px 14px;border-bottom:1px solid var(--hair);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:var(--accent-soft)}
+  td.mode{font-family:var(--mono);color:var(--amber);font-size:12.5px;white-space:nowrap}
+  td.name{font-weight:520;white-space:nowrap}
+  td.hash{font-family:var(--mono);font-size:11.5px;word-break:break-all;color:var(--muted);max-width:560px}
+  td.hps{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rank{font-family:var(--mono);color:var(--muted);font-size:12px}
+  .barcell{width:34%;min-width:120px}
+  .bar{height:8px;border-radius:99px;background:var(--bar);min-width:2px}
+  .pill{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:1px 7px;border-radius:99px;border:1px solid var(--hair);color:var(--muted)}
+  .pill.fast{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,var(--hair))}
+
+  textarea{width:100%;min-height:90px;font-family:var(--mono);font-size:13.5px;background:var(--panel);color:var(--ink);
+    border:1px solid var(--hair);border-radius:10px;padding:12px 14px;resize:vertical;line-height:1.5}
+  textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .results{margin-top:18px}
+  .match{display:flex;align-items:baseline;gap:12px;padding:10px 14px;border:1px solid var(--hair);border-radius:9px;background:var(--panel);margin-bottom:8px;box-shadow:var(--shadow)}
+  .match .m-mode{font-family:var(--mono);color:var(--amber);font-size:13px;min-width:70px}
+  .match .m-name{font-weight:560}
+  .match .m-flags{margin-left:auto;display:flex;gap:6px}
+  .empty{color:var(--muted);font-size:13.5px;padding:14px;border:1px dashed var(--hair);border-radius:9px;text-align:center}
+  .examples{margin-top:14px;font-size:12.5px;color:var(--muted)}
+  .examples code{font-family:var(--mono);background:var(--code-bg);padding:2px 6px;border-radius:5px;cursor:pointer}
+  .examples code:hover{color:var(--accent)}
+
+  .themebtn{position:fixed;top:14px;right:16px;background:var(--panel);border:1px solid var(--hair);color:var(--muted);
+    border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:11px;cursor:pointer;box-shadow:var(--shadow);z-index:5}
+  footer{margin-top:40px;padding-top:22px;border-top:1px solid var(--hair);color:var(--muted);font-size:12.5px}
+  .load-err{background:#c0392b18;border:1px solid #c0392b55;color:var(--ink);padding:14px 16px;border-radius:10px;margin:20px 0}
+</style>
+</head>
+<body>
+<button class="themebtn" id="themebtn" aria-label="Toggle theme">◐ theme</button>
+<div class="wrap">
+  <header class="hero">
+    <span class="eyebrow">pure-javascript · runs entirely in your browser</span>
+    <h1><b>crack</b>-js</h1>
+    <p class="lede">A hashcat-format hash toolkit in pure JavaScript — verify, identify, generate,
+      and benchmark hundreds of hash modes with no server and no dependencies beyond crypto-js.</p>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tab-speed" role="tab" aria-selected="true" aria-controls="panel-speed">⚡ Speed benchmark</button>
+    <button class="tab" id="tab-id" role="tab" aria-selected="false" aria-controls="panel-id">🔎 Identify hash</button>
+    <button class="tab" id="tab-gen" role="tab" aria-selected="false" aria-controls="panel-gen">🔑 Generate</button>
+  </div>
+
+  <!-- SPEED -->
+  <section class="panel active" id="panel-speed" role="tabpanel" aria-labelledby="tab-speed">
+    <div class="controls">
+      <button class="btn" id="run-bench">Measure speed</button>
+      <button class="btn ghost" id="stop-bench" disabled>Stop</button>
+      <label class="field">time / type
+        <select id="dur"><option value="100">100 ms</option><option value="250" selected>250 ms</option><option value="500">500 ms</option><option value="1000">1 s</option></select>
+      </label>
+      <label class="field"><input type="checkbox" id="fastonly"> fast modes only</label>
+    </div>
+    <div class="progress" id="prog"><i></i></div>
+    <div class="statusline" id="bench-status">Click “Measure speed” to benchmark hash calculation throughput (hashes/second) for every mode, in your browser.</div>
+    <div class="tblwrap" id="speed-tblwrap" style="display:none">
+      <table>
+        <thead><tr><th>#</th><th>Mode</th><th>Name</th><th class="num">Hashes / sec</th><th>Relative</th></tr></thead>
+        <tbody id="speed-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- IDENTIFY -->
+  <section class="panel" id="panel-id" role="tabpanel" aria-labelledby="tab-id">
+    <label for="hashin" class="hint" style="display:block;margin-bottom:8px">Paste a hash to see which modes it could be:</label>
+    <textarea id="hashin" placeholder="e.g.  5f4dcc3b5aa765d61d8327deb882cf99"></textarea>
+    <div class="controls" style="margin-top:12px">
+      <button class="btn" id="run-id">Identify</button>
+      <button class="btn ghost" id="clear-id">Clear</button>
+    </div>
+    <div class="examples">Try:
+      <code data-h="5f4dcc3b5aa765d61d8327deb882cf99">md5</code>
+      <code data-h="5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8">sha1</code>
+      <code data-h="$2a$05/VT2Xs2dMd8GJKfrXhjYP.DkTjOVrY12yDN7/6I8ZV0q/1lEohLru">bcrypt</code>
+      <code data-h="$1$28772684$iEwNOgGugqO9.bIz5sk8k/">md5crypt</code>
+      <code data-h="7196759210defdc0">mysql323</code>
+    </div>
+    <div class="results" id="id-results"></div>
+  </section>
+
+  <!-- GENERATE -->
+  <section class="panel" id="panel-gen" role="tabpanel" aria-labelledby="tab-gen">
+    <label for="pwin" class="hint" style="display:block;margin-bottom:8px">Enter a password to generate its hash in every supported mode:</label>
+    <div class="controls">
+      <input type="text" id="pwin" value="hashcat" spellcheck="false" autocomplete="off"
+        style="font-family:var(--mono);font-size:14px;background:var(--panel);color:var(--ink);border:1px solid var(--hair);border-radius:8px;padding:10px 12px;min-width:240px">
+      <button class="btn" id="run-gen">Generate hashes</button>
+      <label class="field"><input type="text" id="filtergen" placeholder="filter by name…" style="min-width:150px"></label>
+    </div>
+    <div class="progress" id="gprog"><i></i></div>
+    <div class="statusline" id="gen-status">Enter a password and click Generate — crack-js produces a valid hash for it in each of the generatable modes.</div>
+    <div class="tblwrap" id="gen-tblwrap" style="display:none">
+      <table><thead><tr><th>Mode</th><th>Name</th><th>Hash</th></tr></thead><tbody id="gen-body"></tbody></table>
+    </div>
+  </section>
+
+  <footer id="footer">Loading crack-js…</footer>
+</div>
+
+<script src="dist/crack.js"></script>
+<script>
+(function(){
+  var C = window.crack;
+  var $ = function(id){ return document.getElementById(id); };
+
+  // ---- theme toggle ----
+  $('themebtn').addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    if(!cur) cur = matchMedia('(prefers-color-scheme:dark)').matches ? 'dark':'light';
+    document.documentElement.setAttribute('data-theme', cur==='dark'?'light':'dark');
+  });
+
+  // ---- library guard ----
+  if(!C || typeof C.measureSpeed !== 'function' || !Array.isArray(C.hashTypes)){
+    document.querySelector('.wrap').insertAdjacentHTML('afterbegin',
+      '<div class="load-err"><b>crack-js failed to load.</b> Make sure <code>dist/crack.js</code> is present next to this page (run <code>npm run build</code>). This page must be served over http(s), not opened as a file:// URL.</div>');
+    $('footer').textContent = 'crack-js not loaded.';
+    return;
+  }
+
+  // ---- header stats ----
+  var gen = C.hashTypes.filter(function(t){return t.generatable;}).length;
+  var fast = C.hashTypes.filter(function(t){return t.fast;}).length;
+  $('stats').innerHTML =
+    '<div class="stat"><b>'+C.hashTypes.length+'</b><span>hash modes</span></div>'+
+    '<div class="stat"><b>'+gen+'</b><span>generatable</span></div>'+
+    '<div class="stat"><b>'+fast+'</b><span>single-shot</span></div>';
+  $('footer').innerHTML = 'crack-js · '+C.hashTypes.length+' modes · verify · identify · generate · benchmark — 100% client-side. <a href="https://github.com/zzzteph/crack-js">source</a>';
+
+  // ---- tabs ----
+  function selectTab(which){
+    ['speed','id','gen'].forEach(function(k){
+      var t=$('tab-'+k), p=$('panel-'+k), on=(k===which);
+      t.setAttribute('aria-selected', on?'true':'false');
+      p.classList.toggle('active', on);
+    });
+  }
+  $('tab-speed').addEventListener('click', function(){selectTab('speed');});
+  $('tab-id').addEventListener('click', function(){selectTab('id');});
+  $('tab-gen').addEventListener('click', function(){selectTab('gen');});
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+  // ---- speed benchmark ----
+  var benchRunning=false, benchStop=false;
+  function fmt(n){ return n>=1000 ? n.toLocaleString('en-US') : String(n); }
+
+  $('run-bench').addEventListener('click', function(){
+    if(benchRunning) return;
+    benchRunning=true; benchStop=false;
+    $('run-bench').disabled=true; $('stop-bench').disabled=false;
+    var dur=parseInt($('dur').value,10);
+    var list=C.hashTypes.filter(function(t){ return $('fastonly').checked ? t.fast : true; });
+    var results=[];
+    $('prog').classList.add('on'); $('prog').firstChild.style.width='0%';
+    $('speed-tblwrap').style.display='block';
+    $('speed-body').innerHTML='';
+    var i=0;
+    function step(){
+      if(benchStop || i>=list.length){ finish(); return; }
+      var t=list[i]; var hps=null;
+      try{ hps=C.measureSpeed(t.mode, dur); }catch(e){ hps=null; }
+      if(hps!=null) results.push({mode:t.mode,name:t.name,hps:hps,fast:t.fast});
+      i++;
+      $('prog').firstChild.style.width=(100*i/list.length)+'%';
+      $('bench-status').textContent='Measuring '+i+' / '+list.length+' · '+t.name+' …';
+      render(results);
+      setTimeout(step,0); // yield so the UI paints between (blocking) measurements
+    }
+    function finish(){
+      benchRunning=false;
+      $('run-bench').disabled=false; $('stop-bench').disabled=true;
+      $('prog').classList.remove('on');
+      $('bench-status').textContent='Done — '+results.length+' modes measured ('+dur+' ms each). Fastest: '+
+        (results.length?results.slice().sort(function(a,b){return b.hps-a.hps;})[0].name:'—')+'.';
+    }
+    step();
+  });
+  $('stop-bench').addEventListener('click', function(){ benchStop=true; });
+
+  function render(results){
+    var sorted=results.slice().sort(function(a,b){return b.hps-a.hps;});
+    var max=sorted.length?sorted[0].hps:1;
+    var rows='';
+    for(var r=0;r<sorted.length;r++){
+      var s=sorted[r];
+      var w=Math.max(2, Math.round(100*s.hps/max));
+      rows+='<tr><td class="rank">'+(r+1)+'</td>'+
+        '<td class="mode">'+s.mode+'</td>'+
+        '<td class="name">'+s.name+(s.fast?' <span class="pill fast">fast</span>':'')+'</td>'+
+        '<td class="num hps">'+fmt(s.hps)+'</td>'+
+        '<td class="barcell"><div class="bar" style="width:'+w+'%"></div></td></tr>';
+    }
+    $('speed-body').innerHTML=rows;
+  }
+
+  // ---- identify ----
+  function modeOf(name){ var m=C.hashTypes.filter(function(t){return t.name===name;})[0]; return m?m.mode:'?'; }
+  function runIdentify(){
+    var h=$('hashin').value.trim();
+    var out=$('id-results');
+    if(!h){ out.innerHTML='<div class="empty">Enter a hash above.</div>'; return; }
+    var names=[];
+    try{ names=C.getPossibleHashTypes(h); }catch(e){ names=[]; }
+    if(!names.length){ out.innerHTML='<div class="empty">No known mode matches that format.</div>'; return; }
+    var html='<div class="hint" style="margin-bottom:10px">'+names.length+' possible '+(names.length===1?'type':'types')+':</div>';
+    names.forEach(function(n){
+      var t=C.hashTypes.filter(function(x){return x.name===n;})[0]||{};
+      html+='<div class="match"><span class="m-mode">-m '+modeOf(n)+'</span>'+
+        '<span class="m-name">'+n+'</span>'+
+        '<span class="m-flags">'+(t.fast?'<span class="pill fast">fast</span>':'')+
+        (t.generatable?'<span class="pill">generatable</span>':'')+'</span></div>';
+    });
+    out.innerHTML=html;
+  }
+  $('run-id').addEventListener('click', runIdentify);
+  $('clear-id').addEventListener('click', function(){ $('hashin').value=''; $('id-results').innerHTML=''; $('hashin').focus(); });
+  $('hashin').addEventListener('keydown', function(e){ if((e.ctrlKey||e.metaKey)&&e.key==='Enter') runIdentify(); });
+  Array.prototype.forEach.call(document.querySelectorAll('.examples code'), function(c){
+    c.addEventListener('click', function(){ $('hashin').value=c.getAttribute('data-h'); runIdentify(); });
+  });
+
+  // ---- generate ----
+  var genRunning=false, genAll=[];
+  $('run-gen').addEventListener('click', function(){
+    if(genRunning) return;
+    var pw=$('pwin').value;
+    var modes=C.generatableModes.slice().sort(function(a,b){return a-b;});
+    genRunning=true; $('run-gen').disabled=true; genAll=[];
+    $('gprog').classList.add('on'); $('gprog').firstChild.style.width='0%';
+    $('gen-tblwrap').style.display='block'; $('gen-body').innerHTML='';
+    var i=0;
+    function step(){
+      if(i>=modes.length){
+        genRunning=false; $('run-gen').disabled=false; $('gprog').classList.remove('on'); renderGen();
+        $('gen-status').textContent=genAll.length+' hashes generated for “'+pw+'”. Modes needing a specific input length are skipped.';
+        return;
+      }
+      var m=modes[i], h=null;
+      try{ h=C.generateHash(m, pw); }catch(e){ h=null; }
+      if(h!=null) genAll.push({mode:m, name:C.modeInfo[m]||'?', hash:String(h)});
+      i++;
+      if(i%15===0 || i===modes.length){
+        $('gprog').firstChild.style.width=(100*i/modes.length)+'%';
+        $('gen-status').textContent='Generating '+i+' / '+modes.length+' …';
+        renderGen();
+      }
+      setTimeout(step,0);
+    }
+    step();
+  });
+  function renderGen(){
+    var f=$('filtergen').value.trim().toLowerCase(), rows='';
+    genAll.forEach(function(g){
+      if(f && g.name.indexOf(f)<0 && String(g.mode).indexOf(f)<0) return;
+      rows+='<tr><td class="mode">'+g.mode+'</td><td class="name">'+g.name+'</td><td class="hash">'+escapeHtml(g.hash)+'</td></tr>';
+    });
+    $('gen-body').innerHTML=rows;
+  }
+  $('filtergen').addEventListener('input', renderGen);
+  $('pwin').addEventListener('keydown', function(e){ if(e.key==='Enter') $('run-gen').click(); });
+})();
+</script>
+</body>
+</html>

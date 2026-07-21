@@ -1,0 +1,73 @@
+# Auto-release to npm on every push to main.
+#
+# On each commit it bumps the version by one patch, cascading when a segment
+# reaches 9 (each of major.minor.patch stays a single digit):
+#   1.0.2 -> 1.0.3     1.0.9 -> 1.1.0     1.9.9 -> 2.0.0
+# then builds, tests, publishes to npm, and commits the bumped version back.
+name: Release to npm
+
+on:
+  push:
+    branches: [main]
+
+# Never run two releases at once (they would race on the version number).
+concurrency:
+  group: release-npm
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Skip the run caused by our own version-bump commit. Pushes made with the
+    # built-in GITHUB_TOKEN don't trigger workflows anyway, so this is just a
+    # belt-and-suspenders guard (e.g. if a PAT is used later).
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    permissions:
+      contents: write        # lets the job push the version-bump commit back
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build dist/crack.js
+        run: npm run build     # regenerates the bundled dist from src on every release
+
+      - name: Test
+        run: node test.js      # verifies the freshly built bundle before publishing
+
+      - name: Compute next version (patch bump, each segment caps at 9)
+        id: ver
+        run: |
+          NEXT=$(node -e '
+            var v = require("./package.json").version.split(".").map(Number);
+            var M = v[0], m = v[1], p = v[2] + 1;
+            if (p > 9) { p = 0; m += 1; }
+            if (m > 9) { m = 0; M += 1; }
+            console.log(M + "." + m + "." + p);
+          ')
+          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "Releasing version $NEXT"
+
+      - name: Apply version
+        run: npm version "${{ steps.ver.outputs.next }}" --no-git-tag-version
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit version bump back to the repo
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json dist/crack.js
+          git commit -m "chore(release): v${{ steps.ver.outputs.next }} [skip ci]"
+          git push origin HEAD:${{ github.ref_name }}

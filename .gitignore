@@ -1,0 +1,19 @@
+# dependencies (restored via `npm install`, e.g. inside the Docker verify step)
+node_modules/
+
+# logs / os cruft
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# local hashcat reference source (large; used only as an algorithm reference)
+# Comment this out if you intend to vendor it into the repo.
+hashcat-*.tar/
+hashcat-*.tar.gz
+/hashcat-*/
+
+# loop bookkeeping
+.loop-done
+
+rt/
