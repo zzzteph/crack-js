@@ -1,23 +1,27 @@
 /* crack-js — dictionary-attack worker.
  * One instance = one background cracking task. The main thread posts
- *   { mode, words:[...], hashes:[...] }
- * and receives a stream of:
- *   { type:'hit',      hash, password }
+ *   { words:[...], items:[ { hash, types:[...] }, ... ] }
+ * where each item carries the candidate hash-types to try for that hash:
+ *   - explicit mode  -> types = [ the chosen mode ]
+ *   - auto-detect    -> types = getPossibleHashTypes(hash)  (every format match)
+ *
+ * For each candidate word it tries every type of every still-uncracked hash and
+ * STOPS on the first type that verifies — that type is the answer for that hash.
+ * It receives back a stream of:
+ *   { type:'hit',      hash, password, mode }   // mode = the type that matched
  *   { type:'progress', tried, total, hps, cracked }
  *   { type:'done',     tried, total, cracked }
  *
  * hps = verifyHash operations per second (true candidate-hash rate).
- * Loaded over http(s) (e.g. GitHub Pages); importScripts resolves the
- * bundle relative to this worker's own URL.
+ * Loaded over http(s); importScripts resolves the bundle relative to this file.
  */
 importScripts('dist/crack.js');
 var C = self.crack;
 
 self.onmessage = function (e) {
   var d = e.data || {};
-  var mode = d.mode;
   var words = d.words || [];
-  var remaining = (d.hashes || []).slice();   // still-uncracked targets
+  var remaining = (d.items || []).slice();   // [{ hash, types:[...] }] — still uncracked
   var total = words.length;
   var startCount = remaining.length;
   var tried = 0, ops = 0, t0 = Date.now(), last = 0;
@@ -25,11 +29,15 @@ self.onmessage = function (e) {
   for (var i = 0; i < words.length; i++) {
     var w = words[i];
     for (var j = remaining.length - 1; j >= 0; j--) {
-      ops++;
-      var ok = false;
-      try { ok = C.verifyHash(w, remaining[j], mode); } catch (_) {}
-      if (ok) {
-        self.postMessage({ type: 'hit', hash: remaining[j], password: w });
+      var it = remaining[j], hitType = null;
+      for (var k = 0; k < it.types.length; k++) {   // try each possible type…
+        ops++;
+        try {
+          if (C.verifyHash(w, it.hash, it.types[k])) { hitType = it.types[k]; break; }  // …stop on the one that matches
+        } catch (_) {}
+      }
+      if (hitType !== null) {
+        self.postMessage({ type: 'hit', hash: it.hash, password: w, mode: hitType });
         remaining.splice(j, 1);
       }
     }

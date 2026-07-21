@@ -600,15 +600,21 @@
     var words=selectedWords();
     if(!words.length){ $('crack-status').textContent='select (or upload) at least one wordlist.'; return; }
 
-    var msel=$('crack-mode').value, mode, modeName, modeNum;
-    if(msel==='auto'){
-      var guess=[]; try{ guess=C.getPossibleHashTypes(hashes[0]); }catch(e){}
-      if(!guess.length){ $('crack-status').textContent='could not auto-detect the mode — pick one from the list.'; return; }
-      modeName=guess[0]; mode=guess[0];
-      var mt=C.hashTypes.filter(function(x){return x.name===modeName;})[0]; modeNum=mt?mt.mode:'?';
-    } else { mode=parseInt(msel,10); modeNum=mode; modeName=C.modeInfo[mode]||('mode '+mode); }
+    var msel=$('crack-mode').value, items, modeName, modeNum, auto=(msel==='auto');
+    if(auto){
+      // give each hash its full list of candidate types; the worker tries them all
+      items=hashes.map(function(h){ var t=[]; try{ t=C.getPossibleHashTypes(h); }catch(e){} return {hash:h, types:t}; });
+      if(!items.some(function(it){ return it.types.length; })){
+        $('crack-status').textContent='could not auto-detect any mode for these hashes — pick one from the list.'; return;
+      }
+      modeName='auto-detect'; modeNum='auto';
+    } else {
+      var mnum=parseInt(msel,10);
+      items=hashes.map(function(h){ return {hash:h, types:[mnum]}; });
+      modeNum=mnum; modeName=C.modeInfo[mnum]||('mode '+mnum);
+    }
 
-    var task={id:++taskSeq, mode:mode, modeName:modeName, modeNum:modeNum, nhash:hashes.length,
+    var task={id:++taskSeq, auto:auto, modeName:modeName, modeNum:modeNum, nhash:hashes.length,
       total:words.length, tried:0, hps:0, cracked:0, hits:[], status:'running', worker:null, el:null};
     createCard(task);
     $('crack-status').textContent='task #'+task.id+' launched — '+modeName+' · '+hashes.length+' hash'+(hashes.length>1?'es':'')+' · '+words.length.toLocaleString('en-US')+' candidates.';
@@ -619,11 +625,11 @@
     task.worker=wk;
     wk.onmessage=function(ev){ onTaskMsg(task, ev.data); };
     wk.onerror=function(er){ task.status='error'; task.err=(er&&er.message)||'worker failed to load'; updateCard(task); };
-    wk.postMessage({mode:mode, words:words, hashes:hashes});
+    wk.postMessage({items:items, words:words});
   });
 
   function onTaskMsg(task, m){
-    if(m.type==='hit'){ task.hits.push({hash:m.hash, password:m.password}); task.cracked=task.hits.length; potAdd(m.hash, m.password); updateCard(task); }
+    if(m.type==='hit'){ task.hits.push({hash:m.hash, password:m.password, mode:m.mode}); task.cracked=task.hits.length; potAdd(m.hash, m.password); updateCard(task); }
     else if(m.type==='progress'){ task.tried=m.tried; task.total=m.total; task.hps=m.hps;
       if(typeof m.cracked==='number' && m.cracked>task.cracked) task.cracked=m.cracked; updateCard(task); }
     else if(m.type==='done'){ task.status='done'; task.tried=m.tried;
@@ -632,10 +638,11 @@
 
   function createCard(task){
     var d=document.createElement('div'); d.className='task'; d.id='task-'+task.id;
+    var modeLabel = task.auto ? 'auto-detect' : ('-m '+escapeHtml(String(task.modeNum))+' '+escapeHtml(String(task.modeName)));
     d.innerHTML=
       '<div class="task-head">'+
         '<span class="task-id">#'+task.id+'</span>'+
-        '<span class="task-mode">-m '+escapeHtml(String(task.modeNum))+' '+escapeHtml(String(task.modeName))+' · <span class="thash">'+task.nhash+' hash'+(task.nhash>1?'es':'')+'</span></span>'+
+        '<span class="task-mode">'+modeLabel+' · <span class="thash">'+task.nhash+' hash'+(task.nhash>1?'es':'')+'</span></span>'+
         '<span class="task-status">running</span>'+
         '<span class="task-btns">'+
           '<button class="btn ghost sm" data-act="stop">stop</button>'+
