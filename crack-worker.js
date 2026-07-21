@@ -19,6 +19,10 @@ importScripts('dist/crack.js');
 var C = self.crack;
 
 self.onmessage = function (e) {
+  if (!C || typeof C.verifyHash !== 'function') {   // crack.js didn't load — fail loudly, don't silently return 0
+    self.postMessage({ type: 'error', message: 'crack.js failed to load in the worker' });
+    return;
+  }
   var d = e.data || {};
   var words = d.words || [];
   var remaining = (d.items || []).slice();   // [{ hash, types:[...] }] — still uncracked

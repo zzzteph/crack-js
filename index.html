@@ -562,7 +562,7 @@
   }
   function selectedWords(){ var out=[]; WORDLISTS.forEach(function(wl){ if(wl.checked) out=out.concat(wl.words); }); return out; }
 
-  var COMMON=("password 123456 123456789 12345678 12345 1234567 1234567890 qwerty abc123 password1 "+
+  var COMMON=("password 123456 123456789 12345678 12345 1234 1234567 1234567890 12 123 0000 1111 2222 4321 qwerty abc123 password1 "+
     "password123 iloveyou admin administrator root toor guest test test123 welcome welcome1 login "+
     "passw0rd p@ssw0rd letmein monkey dragon sunshine princess football baseball soccer hockey shadow "+
     "master superman batman trustno1 hunter hashcat crackme 000000 111111 121212 123123 654321 666666 "+
@@ -633,7 +633,13 @@
     else if(m.type==='progress'){ task.tried=m.tried; task.total=m.total; task.hps=m.hps;
       if(typeof m.cracked==='number' && m.cracked>task.cracked) task.cracked=m.cracked; updateCard(task); }
     else if(m.type==='done'){ task.status='done'; task.tried=m.tried;
-      if(task.worker){ task.worker.terminate(); task.worker=null; } updateCard(task); }
+      if(task.worker){ task.worker.terminate(); task.worker=null; } updateCard(task);
+      $('crack-status').textContent = task.cracked
+        ? ('task #'+task.id+' done — '+task.cracked+' / '+task.nhash+' cracked.')
+        : ('task #'+task.id+' done — 0 cracked. the password may not be in the selected wordlists — tick the PINs list or upload one (e.g. rockyou).'); }
+    else if(m.type==='error'){ task.status='error'; task.err=m.message||'worker error';
+      if(task.worker){ task.worker.terminate(); task.worker=null; } updateCard(task);
+      $('crack-status').textContent='task #'+task.id+' error — '+task.err+'.'; }
   }
 
   function createCard(task){
