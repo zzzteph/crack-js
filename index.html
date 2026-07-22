@@ -242,8 +242,9 @@
           <label class="field">time/type
             <select id="dur"><option value="100">100 ms</option><option value="250" selected>250 ms</option><option value="500">500 ms</option><option value="1000">1 s</option></select>
           </label>
-          <label class="field"><input type="checkbox" id="fastonly"> fast modes only</label>
+          <label class="field" title="Fast = single-shot hash (unsalted, one computation). Slow = salted/iterated: bcrypt, pbkdf2, scrypt, argon2."><input type="checkbox" id="fastonly"> fast modes only</label>
         </div>
+        <div class="hint" style="margin:0 0 14px">“fast” = single-shot hash: unsalted, computed in one pass (md5, sha1, ntlm…) — millions/sec. “slow” = salted &amp; iterated by design (bcrypt, pbkdf2, scrypt, argon2) — far fewer.</div>
         <div class="progress" id="prog"><i></i></div>
         <div class="statusline" id="bench-status">./benchmark --all &nbsp; # measures calculation throughput (hashes/sec) for every mode, in-browser. hit [ benchmark ]</div>
         <div class="tblwrap" id="speed-tblwrap" style="display:none">
@@ -408,7 +409,7 @@
       var w=Math.max(2, Math.round(100*s.hps/max));
       rows+='<tr><td class="rank">'+(r+1)+'</td>'+
         '<td class="mode">'+s.mode+'</td>'+
-        '<td class="name">'+s.name+(s.fast?' <span class="pill fast">fast</span>':'')+'</td>'+
+        '<td class="name">'+s.name+(s.fast?' <span class="pill fast" title="single-shot: unsalted hash computed in one pass — runs at millions/sec">fast</span>':'')+'</td>'+
         '<td class="num hps">'+fmt(s.hps)+'</td>'+
         '<td class="barcell"><div class="bar" style="width:'+w+'%"></div></td></tr>';
     }
@@ -429,7 +430,7 @@
       var t=C.hashTypes.filter(function(x){return x.name===n;})[0]||{};
       html+='<div class="match"><span class="m-mode">-m '+modeOf(n)+'</span>'+
         '<span class="m-name">'+n+'</span>'+
-        '<span class="m-flags">'+(t.fast?'<span class="pill fast">fast</span>':'')+
+        '<span class="m-flags">'+(t.fast?'<span class="pill fast" title="single-shot: unsalted hash computed in one pass — runs at millions/sec">fast</span>':'')+
         (t.generatable?'<span class="pill">generatable</span>':'')+'</span></div>';
     });
     out.innerHTML=html;
@@ -592,6 +593,37 @@
     this.value='';
   });
 
+  // The cracking worker is built INLINE (as a Blob) so its message protocol is
+  // always in sync with this page — there is no separate worker file to get
+  // stale-cached and mismatch. It importScripts() the bundle by absolute URL.
+  function crackWorkerBody(){
+    var C = self.crack;
+    self.onmessage = function(e){
+      if(!C || typeof C.verifyHash !== 'function'){ self.postMessage({type:'error', message:'crack.js failed to load in worker'}); return; }
+      var d = e.data || {}, words = d.words || [], remaining = (d.items || []).slice();
+      var total = words.length, startCount = remaining.length, tried = 0, ops = 0, t0 = Date.now(), last = 0;
+      for(var i=0;i<words.length;i++){
+        var w = words[i];
+        for(var j=remaining.length-1;j>=0;j--){
+          var it = remaining[j], hitType = null;
+          for(var k=0;k<it.types.length;k++){ ops++; try{ if(C.verifyHash(w, it.hash, it.types[k])){ hitType = it.types[k]; break; } }catch(_){} }
+          if(hitType!==null){ self.postMessage({type:'hit', hash:it.hash, password:w, mode:hitType}); remaining.splice(j,1); }
+        }
+        tried++;
+        var now = Date.now();
+        if(now-last>100 || i===words.length-1){ var secs=(now-t0)/1000; self.postMessage({type:'progress', tried:tried, total:total, hps:secs>0?Math.round(ops/secs):ops, cracked:startCount-remaining.length}); last = now; }
+        if(!remaining.length) break;
+      }
+      self.postMessage({type:'done', tried:tried, total:total, cracked:startCount-remaining.length});
+    };
+  }
+  var crackWorkerUrl = null;
+  try{
+    var _crackUrl = new URL('dist/crack.js', location.href).href;
+    var _src = 'importScripts(' + JSON.stringify(_crackUrl) + ');(' + crackWorkerBody.toString() + ')();';
+    crackWorkerUrl = URL.createObjectURL(new Blob([_src], {type:'application/javascript'}));
+  }catch(e){}
+
   var taskSeq=0;
   $('run-crack').addEventListener('click', function(){
     var raw=$('crack-hashes').value.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
@@ -620,7 +652,7 @@
     $('crack-status').textContent='task #'+task.id+' launched — '+modeName+' · '+hashes.length+' hash'+(hashes.length>1?'es':'')+' · '+words.length.toLocaleString('en-US')+' candidates.';
 
     var wk;
-    try{ wk=new Worker('crack-worker.js'); }
+    try{ if(!crackWorkerUrl) throw new Error('workers unavailable'); wk=new Worker(crackWorkerUrl); }
     catch(err){ task.status='error'; task.err='Web Workers need http(s) — deploy to GitHub Pages'; updateCard(task); return; }
     task.worker=wk;
     wk.onmessage=function(ev){ onTaskMsg(task, ev.data); };
