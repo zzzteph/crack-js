@@ -31,42 +31,46 @@
   ::selection{background:var(--accent);color:#000}
   a{color:var(--accent2);text-decoration:none;border-bottom:1px dotted var(--accent2)}
 
-  .wrap{max-width:1160px;margin:0 auto;padding:26px 16px 70px}
-  .terminal{border:1px solid var(--border2);border-radius:8px;background:var(--panel);
-    box-shadow:0 0 0 1px rgba(0,0,0,.4) inset, 0 10px 34px rgba(0,0,0,.42);overflow:hidden}
-  .titlebar{display:flex;align-items:center;gap:12px;padding:9px 12px;background:var(--raised);border-bottom:1px solid var(--border2)}
-  .dots{display:flex;gap:7px}
-  .dots i{width:11px;height:11px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.4)}
-  .dots i:nth-child(1){background:#3d443f}.dots i:nth-child(2){background:#3d443f}.dots i:nth-child(3){background:var(--accent)}
-  .titlebar .ttl{flex:1;text-align:center;color:var(--dim);font-size:12px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .phosphor-btn{appearance:none;background:transparent;border:1px solid var(--border2);color:var(--dim);
-    border-radius:5px;padding:4px 9px;font-family:var(--mono);font-size:11px;cursor:pointer;white-space:nowrap}
-  .phosphor-btn:hover{color:var(--accent);border-color:var(--accent)}
-  .phosphor-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-
-  .screen{padding:24px 22px 26px}
-  .banner{font-size:clamp(30px,7vw,54px);font-weight:800;letter-spacing:.03em;line-height:1;margin:6px 0 2px;color:var(--accent)}
-  .banner .sep{color:var(--dim)}
-  .tagline{color:var(--dim);font-size:12.5px;margin:10px 0 18px;max-width:74ch}
-  .tagline b{color:var(--fg)}
-  .bootlog{margin:0;border:1px solid var(--border);border-radius:6px;background:var(--bg2);padding:8px 12px}
-  .bootline{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:3px 0;font-size:12.5px}
-  .bootline + .bootline{border-top:1px dotted var(--border)}
-  .bl-msg{color:var(--dim)} .bl-msg::before{content:"> ";color:var(--accent)}
-  .bl-ok{color:var(--accent);white-space:nowrap}
-
-  /* app = content + right-hand nav panel */
-  .app{display:flex;gap:22px;align-items:flex-start;margin-top:22px}
-  .content{flex:1;min-width:0}
-  .sidenav{width:196px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;position:sticky;top:16px}
-  .sidenav .navlabel{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding:0 2px 2px}
+  /* app shell: full-height left nav + independently scrolling main */
+  .layout{display:flex;min-height:100vh}
+  .sidenav{width:212px;flex-shrink:0;height:100vh;position:sticky;top:0;overflow-y:auto;
+    background:var(--panel);border-right:1px solid var(--border2);display:flex;flex-direction:column;gap:16px;padding:20px 14px}
+  .brand{font-size:21px;font-weight:800;letter-spacing:.02em;color:var(--accent);padding:2px 4px}
+  .brand .sep{color:var(--dim)}
+  .navlabel{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding:0 4px}
+  .navtabs{display:flex;flex-direction:column;gap:7px;flex:1}
   .tab{appearance:none;background:transparent;border:1px solid var(--border2);color:var(--dim);
-    font-family:var(--mono);font-size:13px;padding:10px 14px;border-radius:5px;cursor:pointer;letter-spacing:.02em;text-align:left;width:100%}
+    font-family:var(--mono);font-size:13px;padding:10px 13px;border-radius:5px;cursor:pointer;letter-spacing:.02em;text-align:left;width:100%}
   .tab::before{content:"./";color:var(--dim)}
   .tab:hover{color:var(--fg);border-color:var(--accent)}
   .tab[aria-selected="true"]{color:#000;background:var(--accent);border-color:var(--accent)}
   .tab[aria-selected="true"]::before{content:"▸ ";color:#000}
   .tab:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+  .navfoot{display:flex;flex-direction:column;gap:9px}
+  .navfoot a{color:var(--dim);border:0;font-size:11.5px} .navfoot a:hover{color:var(--accent)}
+  .phosphor-btn{appearance:none;background:transparent;border:1px solid var(--border2);color:var(--dim);
+    border-radius:5px;padding:7px 10px;font-family:var(--mono);font-size:11px;cursor:pointer;text-align:left}
+  .phosphor-btn:hover{color:var(--accent);border-color:var(--accent)}
+  .phosphor-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .main{flex:1;min-width:0;height:100vh;overflow-y:auto;padding:34px 30px 60px}
+  .main-inner{max-width:1000px}
+
+  /* home header — lives on the home panel only */
+  .banner{font-size:clamp(34px,7vw,58px);font-weight:800;letter-spacing:.03em;line-height:1;margin:0 0 4px;color:var(--accent)}
+  .banner .sep{color:var(--dim)}
+  .tagline{color:var(--dim);font-size:13px;margin:12px 0 22px;max-width:74ch}
+  .tagline b{color:var(--fg)}
+  .bootlog{margin:0 0 22px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);padding:8px 12px;max-width:560px}
+  .bootline{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:3px 0;font-size:12.5px}
+  .bootline + .bootline{border-top:1px dotted var(--border)}
+  .bl-msg{color:var(--dim)} .bl-msg::before{content:"> ";color:var(--accent)}
+  .bl-ok{color:var(--accent);white-space:nowrap}
+  .home-links{display:flex;flex-wrap:wrap;gap:10px}
+  .home-link{border:1px solid var(--border2);border-radius:6px;background:var(--bg2);padding:12px 15px;cursor:pointer;min-width:158px}
+  .home-link:hover{border-color:var(--accent)}
+  .home-link b{color:var(--accent);display:block;font-size:13px;margin-bottom:3px}
+  .home-link span{color:var(--dim);font-size:11.5px}
 
   .panel{display:none} .panel.active{display:block}
   h2.ptitle{font-size:15px;color:var(--fg);margin:0 0 4px;font-weight:700}
@@ -193,17 +197,18 @@
   .load-err{background:rgba(255,95,95,.08);border:1px solid var(--red);color:var(--fg);padding:14px 16px;border-radius:6px;margin:18px 0}
   .load-err b{color:var(--red)} .load-err code{background:var(--bg2);padding:1px 6px;border-radius:4px;color:var(--accent)}
 
-  @media (max-width:820px){
-    .app{flex-direction:column}
-    .sidenav{width:auto;position:static;flex-direction:row;flex-wrap:wrap}
-    .sidenav .navlabel{display:none}
-    .tab{flex:1 1 40%;text-align:center;min-height:42px}
+  @media (max-width:760px){
+    .layout{flex-direction:column}
+    .sidenav{width:auto;height:auto;position:static;overflow:visible;border-right:0;border-bottom:1px solid var(--border2);
+      flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px}
+    .brand{flex:0 0 auto} .navlabel{display:none}
+    .navtabs{flex-direction:row;flex-wrap:wrap;flex:1 1 100%;gap:6px}
+    .tab{flex:1 1 40%;text-align:center}
+    .navfoot{flex-direction:row;gap:10px;align-items:center}
+    .main{height:auto;overflow:visible;padding:20px 14px}
   }
   @media (max-width:600px){
     body{font-size:13.5px}
-    .wrap{padding:12px 9px 54px}
-    .screen{padding:16px 12px}
-    .titlebar .ttl{display:none}
     .banner{font-size:clamp(28px,11vw,48px)}
     .controls{gap:9px}
     .task-btns{margin-left:0;width:100%} .task-btns .btn{flex:1}
@@ -212,24 +217,39 @@
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="terminal">
-    <div class="titlebar">
-      <span class="dots"><i></i><i></i><i></i></span>
-      <span class="ttl">root@crack-js: ~/bin — hashcat-format toolkit — tty1</span>
-      <button class="phosphor-btn" id="themebtn" aria-label="Toggle phosphor color">◉ phosphor</button>
+<div class="layout">
+  <nav class="sidenav">
+    <div class="brand">crack<span class="sep">-</span>js</div>
+    <div class="navlabel">// tools</div>
+    <div class="navtabs" role="tablist" aria-label="sections">
+      <button class="tab" id="tab-home" role="tab" aria-selected="true" aria-controls="panel-home">home</button>
+      <button class="tab" id="tab-speed" role="tab" aria-selected="false" aria-controls="panel-speed">benchmark</button>
+      <button class="tab" id="tab-gen" role="tab" aria-selected="false" aria-controls="panel-gen">generate</button>
+      <button class="tab" id="tab-ext" role="tab" aria-selected="false" aria-controls="panel-ext">extract</button>
+      <button class="tab" id="tab-id" role="tab" aria-selected="false" aria-controls="panel-id">identify</button>
+      <button class="tab" id="tab-brute" role="tab" aria-selected="false" aria-controls="panel-brute">brute</button>
+      <button class="tab" id="tab-wf" role="tab" aria-selected="false" aria-controls="panel-wf">workflows</button>
     </div>
-    <div class="screen">
-      <h1 class="banner"><span>crack</span><span class="sep">-</span><span>js</span></h1>
-      <p class="tagline">pure-javascript hashcat-format engine — <b>benchmark · generate · extract · identify · brute</b>.
-        hundreds of hash modes, archive/file hash extraction, and dynamic cracking workflows — no server, no dependency beyond crypto-js. everything below runs in your browser.</p>
-      <div class="bootlog" id="stats"></div>
+    <div class="navfoot">
+      <button class="phosphor-btn" id="themebtn" aria-label="Toggle phosphor color">◉ phosphor</button>
+      <a href="https://github.com/zzzteph/crack-js">github ↗</a>
+    </div>
+  </nav>
+  <main class="main">
+    <div class="main-inner">
 
-      <div class="app">
-        <main class="content">
+      <!-- HOME -->
+      <section class="panel active" id="panel-home" role="tabpanel">
+        <h1 class="banner">crack<span class="sep">-</span>js</h1>
+        <p class="tagline">pure-javascript hashcat-format engine — <b>benchmark · generate · extract · identify · brute</b>.
+          hundreds of hash modes, archive/file hash extraction, and dynamic cracking workflows — no server, no dependency beyond crypto-js. everything runs in your browser.</p>
+        <div class="bootlog" id="stats"></div>
+        <div class="home-links" id="home-links"></div>
+        <footer id="footer">booting crack-js…</footer>
+      </section>
 
-          <!-- BENCHMARK -->
-          <section class="panel active" id="panel-speed" role="tabpanel">
+      <!-- BENCHMARK -->
+      <section class="panel" id="panel-speed" role="tabpanel">
             <h2 class="ptitle"><span class="cmd">./benchmark</span> — hashes/sec per mode</h2>
             <p class="psub">measures raw calculation throughput for every mode, in-browser. “fast” = single-shot unsalted hash (md5, sha1, ntlm…) — millions/sec. “slow” = salted &amp; iterated by design (bcrypt, pbkdf2, scrypt, argon2) — far fewer.</p>
             <div class="controls">
@@ -318,6 +338,7 @@
 
             <div class="controls" style="margin-top:12px">
               <label class="field">mode <select id="brute-mode"><option value="auto">auto-detect</option></select></label>
+              <span class="hint" id="auto-hint" style="font-variant-numeric:tabular-nums"></span>
               <label class="field">attack
                 <select id="attack-type">
                   <option value="dict">wordlist</option>
@@ -400,6 +421,7 @@ r</textarea>
                   <label class="field">name <input type="text" id="wf-name" placeholder="e.g. quick → rules → brute" style="min-width:220px"></label>
                 </div>
                 <div id="wf-steps"></div>
+                <input type="file" id="wf-wl-file" accept=".txt,.lst,.dic,text/plain" multiple style="display:none">
                 <div class="controls" style="margin-top:6px">
                   <button class="btn ghost sm" id="wf-addstep">+ add step</button>
                 </div>
@@ -412,25 +434,12 @@ r</textarea>
             <div id="wf-list"></div>
           </section>
 
-          <footer id="footer">booting crack-js…</footer>
-        </main>
-
-        <nav class="sidenav" role="tablist" aria-label="sections">
-          <div class="navlabel">// sections</div>
-          <button class="tab" id="tab-speed" role="tab" aria-selected="true" aria-controls="panel-speed">benchmark</button>
-          <button class="tab" id="tab-gen" role="tab" aria-selected="false" aria-controls="panel-gen">generate</button>
-          <button class="tab" id="tab-ext" role="tab" aria-selected="false" aria-controls="panel-ext">extract</button>
-          <button class="tab" id="tab-id" role="tab" aria-selected="false" aria-controls="panel-id">identify</button>
-          <button class="tab" id="tab-brute" role="tab" aria-selected="false" aria-controls="panel-brute">brute</button>
-          <button class="tab" id="tab-wf" role="tab" aria-selected="false" aria-controls="panel-wf">workflows</button>
-        </nav>
-      </div>
     </div>
-  </div>
+  </main>
 </div>
 
-<script src="dist/crack.js"></script>
-<script src="dist/hashcat-rules.js"></script>
+<script src="dist/crack.js?v=2"></script>
+<script src="dist/hashcat-rules.js?v=2"></script>
 <script>
 (function(){
   var C = window.crack;
@@ -443,7 +452,7 @@ r</textarea>
   });
 
   if(!C || typeof C.measureSpeed !== 'function' || !Array.isArray(C.hashTypes)){
-    document.querySelector('.screen').insertAdjacentHTML('afterbegin',
+    document.querySelector('.main-inner').insertAdjacentHTML('afterbegin',
       '<div class="load-err"><b>crack-js failed to load.</b> Make sure <code>dist/crack.js</code> sits next to this page (run <code>npm run build</code>), and serve over http(s) — not file://.</div>');
     $('footer').textContent='crack-js not loaded.'; return;
   }
@@ -461,17 +470,23 @@ r</textarea>
   $('footer').innerHTML='crack-js · '+C.hashTypes.length+' modes · 100% client-side · <a href="https://github.com/zzzteph/crack-js">github.com/zzzteph/crack-js</a>';
 
   // ---- tabs ----
-  var TABS=['speed','gen','ext','id','brute','wf'];
+  var TABS=['home','speed','gen','ext','id','brute','wf'];
   function selectTab(which){
     TABS.forEach(function(k){
-      var t=$('tab-'+k), p=$('panel-'+(k==='speed'?'speed':k)), on=(k===which);
+      var t=$('tab-'+k), p=$('panel-'+k), on=(k===which);
       if(t){ t.setAttribute('aria-selected', on?'true':'false'); }
       if(p){ p.classList.toggle('active', on); }
     });
+    var m=document.querySelector('.main'); if(m) m.scrollTop=0;
   }
   TABS.forEach(function(k){ $('tab-'+k).addEventListener('click', function(){ selectTab(k); if(history.replaceState) history.replaceState(null,'','#'+k); }); });
   function tabFromHash(){ var h=(location.hash||'').replace('#',''); if(TABS.indexOf(h)>=0) selectTab(h); }
   window.addEventListener('hashchange', tabFromHash); tabFromHash();
+
+  // ---- home quick-links ----
+  var HL=[['speed','benchmark','hashes/sec per mode'],['gen','generate','password → hash'],['ext','extract','file → hashcat hash'],['id','identify','what is this hash?'],['brute','brute','crack hashes'],['wf','workflows','chained attacks']];
+  $('home-links').innerHTML=HL.map(function(l){ return '<div class="home-link" data-go="'+l[0]+'"><b>./'+l[1]+'</b><span>'+l[2]+'</span></div>'; }).join('');
+  Array.prototype.forEach.call($('home-links').querySelectorAll('[data-go]'), function(el){ el.addEventListener('click', function(){ var k=el.getAttribute('data-go'); selectTab(k); if(history.replaceState) history.replaceState(null,'','#'+k); }); });
 
   function fmt(n){ return (typeof n==='number') ? n.toLocaleString('en-US') : String(n); }
   function fmtBig(n){
@@ -645,6 +660,7 @@ r</textarea>
     if(modes.length && modes.every(function(m){return m===modes[0];})){ setBruteMode(modes[0]); }
     selectTab('brute'); if(history.replaceState) history.replaceState(null,'','#brute');
     $('brute-status').textContent='loaded '+hs.length+' extracted hash'+(hs.length>1?'es':'')+' — pick an attack and hit crack.';
+    updateAutoHint();
   }
 
   // generic click/drag drop wiring
@@ -699,7 +715,19 @@ r</textarea>
 
   // ================= attack config =================
   $('brute-mode').insertAdjacentHTML('beforeend', C.hashTypes.slice().sort(function(a,b){return a.mode-b.mode;}).map(function(t){ return '<option value="'+t.mode+'">'+esc(t.name)+'  (-m '+t.mode+')</option>'; }).join(''));
-  function setBruteMode(m){ var opt=$('brute-mode').querySelector('option[value="'+m+'"]'); $('brute-mode').value = opt ? String(m) : 'auto'; }
+  function setBruteMode(m){ var opt=$('brute-mode').querySelector('option[value="'+m+'"]'); $('brute-mode').value = opt ? String(m) : 'auto'; updateAutoHint(); }
+  // when mode = auto-detect, show the detected hash type(s) for the first pasted hash, in brackets
+  function updateAutoHint(){
+    var el=$('auto-hint'); if(!el) return;
+    if($('brute-mode').value!=='auto'){ el.textContent=''; return; }
+    var first=($('brute-hashes').value.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean))[0];
+    if(!first){ el.textContent='(paste a hash)'; return; }
+    var names=[]; try{ names=C.getPossibleHashTypes(first); }catch(e){}
+    el.textContent = names.length ? ('('+names.slice(0,4).join(', ')+(names.length>4?' +'+(names.length-4):'')+')') : '(no match)';
+  }
+  $('brute-hashes').addEventListener('input', updateAutoHint);
+  $('brute-mode').addEventListener('change', updateAutoHint);
+  updateAutoHint();
 
   var RULE_PRESETS={
     best:[':','l','u','c','r','d','$1','$1$2$3','$!','sa@','se3','so0'],
@@ -903,7 +931,7 @@ r</textarea>
   var WF_KEY='crackjs.workflows.v1', WORKFLOWS=[];
   try{ WORKFLOWS=JSON.parse(localStorage.getItem(WF_KEY))||[]; }catch(e){ WORKFLOWS=[]; }
   function saveWorkflows(){ try{ localStorage.setItem(WF_KEY, JSON.stringify(WORKFLOWS)); }catch(e){} }
-  var editSteps=null, editId=null, wfSeq=Date.now();
+  var editSteps=null, editId=null, wfSeq=Date.now(), wfUploadStep=-1;
 
   function newStep(kind){ if(kind==='brute') return {kind:'brute',charset:'abcdefghijklmnopqrstuvwxyz0123456789',min:1,max:4}; return {kind:kind,wlNames:['common passwords'],rules:':\nc\n$1'}; }
   function startEdit(wf){
@@ -921,15 +949,29 @@ r</textarea>
     else { WORKFLOWS.push({id:'wf'+(wfSeq++), name:nm, steps:editSteps}); }
     saveWorkflows(); editSteps=null; editId=null; $('wf-editor').style.display='none'; renderWfList(); refreshWfSelect();
   });
+  // upload a wordlist from inside a workflow step -> add it + auto-select it for that step
+  $('wf-wl-file').addEventListener('change', function(){
+    var self=this;
+    Array.prototype.forEach.call(this.files, function(f){
+      var rd=new FileReader();
+      rd.onload=function(){
+        var nm=f.name; addWordlist(nm, String(rd.result).split(/\r?\n/), false, false);
+        if(wfUploadStep>=0 && editSteps && editSteps[wfUploadStep]){ var st=editSteps[wfUploadStep]; st.wlNames=st.wlNames||[]; if(st.wlNames.indexOf(nm)<0) st.wlNames.push(nm); }
+        renderWfSteps();
+      };
+      rd.readAsText(f);
+    });
+    self.value='';
+  });
 
   function renderWfStepsIfEditing(){ if(editSteps) renderWfSteps(); }
   function renderWfSteps(){
     if(!editSteps) return;
-    var wlOpts=WORDLISTS.map(function(w){return w.name;});
+    var wlOpts=[]; WORDLISTS.forEach(function(w){ if(wlOpts.indexOf(w.name)<0) wlOpts.push(w.name); });
     $('wf-steps').innerHTML=editSteps.map(function(st,i){
       var body='';
       if(st.kind==='dict'||st.kind==='rules'){
-        body+='<div class="wf-mini" style="margin-bottom:8px">wordlists: '+wlOpts.map(function(nm){ var on=(st.wlNames||[]).indexOf(nm)>=0; return '<label class="wl-item"><input type="checkbox" data-wl-name="'+esc(nm)+'" data-i="'+i+'"'+(on?' checked':'')+'>'+esc(nm)+'</label>'; }).join('')+'</div>';
+        body+='<div class="wf-mini" style="margin-bottom:8px">wordlists: '+wlOpts.map(function(nm){ var on=(st.wlNames||[]).indexOf(nm)>=0; return '<label class="wl-item"><input type="checkbox" data-wl-name="'+esc(nm)+'" data-i="'+i+'"'+(on?' checked':'')+'>'+esc(nm)+'</label>'; }).join('')+' <button class="btn ghost sm" data-wl-upload="'+i+'">+ upload</button></div>';
         if(st.kind==='rules') body+='<textarea data-rules="'+i+'" style="min-height:78px" placeholder="one rule per line">'+esc(st.rules||'')+'</textarea>';
       } else {
         body+='<div class="wf-mini"><label class="field">charset <input type="text" data-cs="'+i+'" value="'+esc(st.charset)+'" style="min-width:220px"></label>'+
@@ -946,6 +988,7 @@ r</textarea>
     Array.prototype.forEach.call(S.querySelectorAll('[data-up]'), function(b){ b.addEventListener('click', function(){ var i=+b.getAttribute('data-up'); if(i>0){ var t=editSteps[i-1]; editSteps[i-1]=editSteps[i]; editSteps[i]=t; renderWfSteps(); } }); });
     Array.prototype.forEach.call(S.querySelectorAll('[data-down]'), function(b){ b.addEventListener('click', function(){ var i=+b.getAttribute('data-down'); if(i<editSteps.length-1){ var t=editSteps[i+1]; editSteps[i+1]=editSteps[i]; editSteps[i]=t; renderWfSteps(); } }); });
     Array.prototype.forEach.call(S.querySelectorAll('[data-wl-name]'), function(cb){ cb.addEventListener('change', function(){ var i=+cb.getAttribute('data-i'), nm=cb.getAttribute('data-wl-name'); var st=editSteps[i]; st.wlNames=st.wlNames||[]; var k=st.wlNames.indexOf(nm); if(cb.checked && k<0) st.wlNames.push(nm); if(!cb.checked && k>=0) st.wlNames.splice(k,1); }); });
+    Array.prototype.forEach.call(S.querySelectorAll('[data-wl-upload]'), function(b){ b.addEventListener('click', function(){ wfUploadStep=+b.getAttribute('data-wl-upload'); $('wf-wl-file').click(); }); });
     Array.prototype.forEach.call(S.querySelectorAll('[data-rules]'), function(t){ t.addEventListener('input', function(){ editSteps[+t.getAttribute('data-rules')].rules=t.value; }); });
     Array.prototype.forEach.call(S.querySelectorAll('[data-cs]'), function(t){ t.addEventListener('input', function(){ editSteps[+t.getAttribute('data-cs')].charset=t.value; }); });
     Array.prototype.forEach.call(S.querySelectorAll('[data-min]'), function(t){ t.addEventListener('input', function(){ editSteps[+t.getAttribute('data-min')].min=parseInt(t.value,10)||1; }); });
