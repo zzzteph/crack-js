@@ -416,6 +416,71 @@ function extractRar(b) {
 }
 
 // ---------------------------------------------------------------------------
+// Crypto wallets: wallet file -> hashcat hash (mirrors john's bitcoin2john /
+// ethereum2john / blockchain2john / electrum2john). Ethereum keystore
+// (15600/15700/16300), MetaMask vault (26600), Blockchain.info (12700/15200),
+// Electrum (16600/21700/21800), Bitcoin/Litecoin wallet.dat (11300).
+// ---------------------------------------------------------------------------
+function _u8Text(b) { var s = '', i; for (i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return s; }
+function _wjson(t) { try { return JSON.parse(t); } catch (e) { return null; } }
+function _wrow(mode, name, hash) { return { type: 'wallet', mode: mode, name: name, file: null, hash: hash }; }
+function _u32le(b, o) { return (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0; }
+
+// Bitcoin/Litecoin wallet.dat (11300): scan the raw BDB/SQLite bytes for the "mkey"
+// value -> <0x30><48B enc-master-key><saltlen><salt><u32 method=0><u32 iterations>.
+function extractBitcoinWalletDat(b) {
+    for (var i = 0; i + 70 < b.length; i++) {
+        if (b[i] !== 0x30) continue;                          // compact-size 48 = encrypted_key length
+        var sl = b[i + 49], saltN = sl === 0x08 ? 8 : sl === 0x10 ? 16 : 0;
+        if (!saltN) continue;
+        var mo = i + 50 + saltN;                              // nDerivationMethod offset (must be 0)
+        if (b[mo] !== 0 || b[mo + 1] !== 0 || b[mo + 2] !== 0 || b[mo + 3] !== 0) continue;
+        var iter = _u32le(b, mo + 4);
+        if (iter < 1000 || iter > 100000000) continue;
+        var enckey = _hex(b, i + 1, 48), cmaster = enckey.slice(enckey.length - 64), salt = _hex(b, i + 50, saltN);
+        return [_wrow(11300, 'Bitcoin/Litecoin wallet.dat', '$bitcoin$' + cmaster.length + '$' + cmaster + '$' + salt.length + '$' + salt + '$' + iter + '$2$00$2$00')];
+    }
+    return null;
+}
+function _electrumJson(d) {
+    if (d.seed_version === 4 && d.seed) { var s = _b64(d.seed); if (s.length >= 32) return _wrow(16600, 'Electrum 1', '$electrum$1*' + _bytesToHex(s.slice(0, 16)) + '*' + _bytesToHex(s.slice(16, 32))); }
+    var ks = d.keystore;
+    if (ks) {
+        if (ks.type === 'bip32' && ks.xprv) { var x = _b64(ks.xprv); if (x.length >= 32) return _wrow(16600, 'Electrum 2', '$electrum$2*' + _bytesToHex(x.slice(0, 16)) + '*' + _bytesToHex(x.slice(16, 32))); }
+        if (ks.type === 'old' && ks.seed) { var so = _b64(ks.seed); if (so.length >= 32) return _wrow(16600, 'Electrum 1', '$electrum$1*' + _bytesToHex(so.slice(0, 16)) + '*' + _bytesToHex(so.slice(16, 32))); }
+    }
+    return null;
+}
+function extractWallet(b) {
+    var text = _u8Text(b), d = _wjson(text);
+    if (d && typeof d.vault === 'string') { var v = _wjson(d.vault); if (v) d = v; }   // MetaMask stores its vault as a stringified JSON
+    if (d) {
+        var cr = d.crypto || d.Crypto;
+        if (cr && cr.ciphertext && cr.kdf) {
+            var kp = cr.kdfparams || {};
+            if (cr.kdf === 'scrypt') return [_wrow(15700, 'Ethereum (scrypt)', '$ethereum$s*' + kp.n + '*' + kp.r + '*' + kp.p + '*' + kp.salt + '*' + cr.ciphertext + '*' + cr.mac)];
+            if (cr.kdf === 'pbkdf2') return [_wrow(15600, 'Ethereum (PBKDF2)', '$ethereum$p*' + kp.c + '*' + kp.salt + '*' + cr.ciphertext + '*' + cr.mac)];
+        }
+        if (d.encseed && d.ethaddr && d.bkp) return [_wrow(16300, 'Ethereum presale', '$ethereum$w*' + d.encseed + '*' + d.ethaddr + '*' + String(d.bkp).slice(0, 32))];
+        if (d.payload && d.pbkdf2_iterations) { var pay = _b64(d.payload); return [_wrow(15200, 'Blockchain (My Wallet v2)', '$blockchain$v2$' + d.pbkdf2_iterations + '$' + pay.length + '$' + _bytesToHex(pay))]; }
+        if (typeof d.data === 'string' && d.iv && d.salt) return [_wrow(26600, 'MetaMask', '$metamask$' + d.salt + '$' + d.iv + '$' + d.data)];
+        var el = _electrumJson(d); if (el) return [el];
+        throw new Error('wallet: JSON is not a recognized wallet (ethereum/metamask/blockchain/electrum)');
+    }
+    var t = text.replace(/\s+/g, '');
+    if (/^[A-Za-z0-9+/]+={0,2}$/.test(t) && t.length >= 44) {   // base64 blob: electrum 2.8+ (BIE1) or blockchain v1
+        var raw = _b64(t);
+        if (raw.length > 37 && raw[0] === 0x42 && raw[1] === 0x49 && raw[2] === 0x45 && raw[3] === 0x31) {  // "BIE1"
+            var ver = (raw.length - 32) > 16384 ? 5 : 4;
+            return [_wrow(ver === 5 ? 21800 : 21700, 'Electrum ' + ver + ' (2.8+)', '$electrum$' + ver + '*' + _hex(raw, 4, 33) + '*' + _bytesToHex(raw.slice(0, raw.length - 32)) + '*' + _bytesToHex(raw.slice(raw.length - 32)))];
+        }
+        return [_wrow(12700, 'Blockchain (My Wallet v1)', '$blockchain$' + raw.length + '$' + _bytesToHex(raw))];
+    }
+    var bt = extractBitcoinWalletDat(b); if (bt) return bt;
+    throw new Error('wallet: unrecognized wallet file (not JSON keystore / base64 / wallet.dat)');
+}
+
+// ---------------------------------------------------------------------------
 // dispatcher
 // ---------------------------------------------------------------------------
 var HINTS = {
@@ -423,9 +488,11 @@ var HINTS = {
     '7z': '7z', sevenzip: '7z', '7zip': '7z',
     rar: 'rar', rar3: 'rar', rar5: 'rar',
     office: 'office', docx: 'office', doc: 'office', xlsx: 'office', ooxml: 'office',
-    wpa: 'wpa', wifi: 'wpa', hccapx: 'wpa', pmkid: 'wpa', pcap: 'wpa'
+    wpa: 'wpa', wifi: 'wpa', hccapx: 'wpa', pmkid: 'wpa', pcap: 'wpa',
+    wallet: 'wallet', bitcoin: 'wallet', ethereum: 'wallet', eth: 'wallet', keystore: 'wallet',
+    metamask: 'wallet', blockchain: 'wallet', electrum: 'wallet', walletdat: 'wallet'
 };
-var RUN = { zip: extractZip, '7z': extract7z, rar: extractRar, office: extractOffice, wpa: extractWpa };
+var RUN = { zip: extractZip, '7z': extract7z, rar: extractRar, office: extractOffice, wpa: extractWpa, wallet: extractWallet };
 
 function extract(input, typeHint) {
     // text input (hash lines) only makes sense for WPA passthrough
@@ -440,12 +507,13 @@ function extract(input, typeHint) {
         return RUN[fmt](b);
     }
     var d = detect(b);
-    if (!d) throw new Error('extract: unrecognized file format (magic ' + _hex(b, 0, Math.min(8, b.length)) + ')');
-    return RUN[d](b);
+    if (d) return RUN[d](b);
+    try { return extractWallet(b); } catch (e) { /* not a wallet file either */ }
+    throw new Error('extract: unrecognized file format (magic ' + _hex(b, 0, Math.min(8, b.length)) + ')');
 }
 
 module.exports = {
     extract: extract, detect: detect,
-    extractZip: extractZip, extract7z: extract7z, extractRar: extractRar, extractOffice: extractOffice, extractWpa: extractWpa,
+    extractZip: extractZip, extract7z: extract7z, extractRar: extractRar, extractOffice: extractOffice, extractWpa: extractWpa, extractWallet: extractWallet,
     _toU8: _toU8
 };
