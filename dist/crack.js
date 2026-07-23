@@ -15289,8 +15289,8 @@ var crack = (() => {
   });
 
   // index.js
-  var app_exports = {};
-  __export(app_exports, {
+  var crack_js_exports = {};
+  __export(crack_js_exports, {
     availableHashTypes: () => availableHashTypes,
     detectFileType: () => detectFileType,
     extract: () => extract,
@@ -18794,7 +18794,7 @@ var crack = (() => {
       })
     };
   });
-  return __toCommonJS(app_exports);
+  return __toCommonJS(crack_js_exports);
 })();
 /*! Bundled license information:
 
