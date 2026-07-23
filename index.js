@@ -49,6 +49,10 @@ var _nc = require('./src/noncrypto');
 var _blake2s = require('./src/blake2s');
 var _rmd320 = require('./src/ripemd320');
 var verifyRar5 = _rar.verifyRar5, verifyRar3hp = _rar.verifyRar3hp, verifyRar3p = _rar.verifyRar3p;
+var _zip = require('./src/zip');
+var verifyWinzipAes = _zip.verifyWinzipAes, verifySecurezip = _zip.verifySecurezip, verifyPkzip = _zip.verifyPkzip;
+var verify7z = require('./src/sevenzip').verify7z;
+var _extract = require('./src/extract');
 
 
 
@@ -592,6 +596,42 @@ const HASH_REGISTRY = [
       validate: (h) => /^\$rar5\$16\$[0-9a-fA-F]+\$\d+\$[0-9a-fA-F]+\$8\$[0-9a-fA-F]{16}$/.test(h),
       verify: verifyRar5,
       example: { password: 'hashcat', hash: '$rar5$16$38466361001011015181344360681307$15$00000000000000000000000000000000$8$cc7a30583e62676a' } },
+    { modes: [13600], names: ['winzip'], isFast: false,
+      validate: (h) => /^\$zip2\$\*\d+\*[123]\*\d+\*[0-9a-fA-F]*\*[0-9a-fA-F]*\*\d+\*[0-9a-fA-F]*\*[0-9a-fA-F]+\*\$\/zip2\$$/.test(h),
+      verify: verifyWinzipAes,
+      example: { password: 'hashcat', hash: '$zip2$*0*1*0*0675369741458183*5dc5*0**36b85538918416712640*$/zip2$' } },
+    { modes: [23001], names: ['securezip-aes128'], isFast: false,
+      validate: (h) => /^\$zip3\$\*0\*1\*128\*0\*[0-9a-fA-F]+\*[0-9a-fA-F]+\*0\*0\*0\*/.test(h),
+      verify: verifySecurezip,
+      example: { password: 'hashcat', hash: '$zip3$*0*1*128*0*b4630625c92b6e7848f6fd86*df2f62611b3d02d2c7e05a48dad57c7d93b0bac1362261ab533807afb69db856676aa6e350320130b5cbf27c55a48c0f75739654ac312f1cf5c37149557fc88a92c7e3dde8d23edd2b839036e88092a708b7e818bf1b6de92f0efb5cce184cceb11db6b3ca0527d0bdf1f1137ee6660d9890928cd80542ac1f439515519147c14d965b5ba107c6227f971e3e115170bf*0*0*0*file.txt' } },
+    { modes: [23002], names: ['securezip-aes192'], isFast: false,
+      validate: (h) => /^\$zip3\$\*0\*1\*192\*0\*[0-9a-fA-F]+\*[0-9a-fA-F]+\*0\*0\*0\*/.test(h),
+      verify: verifySecurezip,
+      example: { password: 'hashcat', hash: '$zip3$*0*1*192*0*53ff2de8c280778e1e0ab997*603eb37dbab9ea109e2c405e37d8cae1ec89e1e0d0b9ce5bf55d1b571c343b6a3df35fe381c30249cb0738a9b956ba8e52dfc5552894296300446a771032776c811ff8a71d9bb3c4d6c37016c027e41fea2d157d5b0ce17804b1d7c1606b7c1121d37851bd705e001f2cd755bbf305966d129a17c1d48ff8e87cfa41f479090cd456527db7d1d43f9020ad8e73f851a5*0*0*0*file.txt' } },
+    { modes: [23003], names: ['securezip-aes256'], isFast: false,
+      validate: (h) => /^\$zip3\$\*0\*1\*256\*0\*[0-9a-fA-F]+\*[0-9a-fA-F]+\*0\*0\*0\*/.test(h),
+      verify: verifySecurezip,
+      example: { password: 'hashcat', hash: '$zip3$*0*1*256*0*39bff47df6152a0214d7a967*65ff418ffb3b1198cccdef0327c03750f328d6dd5287e00e4c467f33b92a6ef40a74bb11b5afad61a6c3c9b279d8bd7961e96af7b470c36fc186fd3cfe059107021c9dea0cf206692f727eeca71f18f5b0b6ee1f702b648bba01aa21c7b7f3f0f7d547838aad46868155a04214f22feef7b31d7a15e1abe6dba5e569c62ee640783bb4a54054c2c69e93ece9f1a2af9d*0*0*0*file.txt' } },
+    { modes: [17210], names: ['pkzip-uncompressed'], isFast: false,
+      validate: (h) => _zip.validatePkzip(h, 0),
+      verify: verifyPkzip,
+      example: { password: 'hashcat', hash: '$pkzip2$1*1*2*0*1d1*1c5*eda7a8de*0*28*0*1d1*eda7*5096*1dea673da43d9fc7e2be1a1f4f664269fceb6cb88723a97408ae1fe07f774d31d1442ea8485081e63f919851ca0b7588d5e3442317fff19fe547a4ef97492ed75417c427eea3c4e146e16c100a2f8b6abd7e5988dc967e5a0e51f641401605d673630ea52ebb04da4b388489901656532c9aa474ca090dbac7cf8a21428d57b42a71da5f3d83fed927361e5d385ca8e480a6d42dea5b4bf497d3a24e79fc7be37c8d1721238cbe9e1ea3ae1eb91fc02aabdf33070d718d5105b70b3d7f3d2c28b3edd822e89a5abc0c8fee117c7fbfbfd4b4c8e130977b75cb0b1da080bfe1c0859e6483c42f459c8069d45a76220e046e6c2a2417392fd87e4aa4a2559eaab3baf78a77a1b94d8c8af16a977b4bb45e3da211838ad044f209428dba82666bf3d54d4eed82c64a9b3444a44746b9e398d0516a2596d84243b4a1d7e87d9843f38e45b6be67fd980107f3ad7b8453d87300e6c51ac9f5e3f6c3b702654440c543b1d808b62f7a313a83b31a6faaeedc2620de7057cd0df80f70346fe2d4dccc318f0b5ed128bcf0643e63d754bb05f53afb2b0fa90b34b538b2ad3648209dff587df4fa18698e4fa6d858ad44aa55d2bba3b08dfdedd3e28b8b7caf394d5d9d95e452c2ab1c836b9d74538c2f0d24b9b577*$/pkzip2$' } },
+    { modes: [17200], names: ['pkzip-compressed'], isFast: false,
+      validate: (h) => _zip.validatePkzip(h, 8),
+      verify: verifyPkzip,
+      example: { password: 'hashcat', hash: '$pkzip2$1*1*2*0*e3*1c5*eda7a8de*0*28*8*e3*eda7*5096*a9fc1f4e951c8fb3031a6f903e5f4e3211c8fdc4671547bf77f6f682afbfcc7475d83898985621a7af9bccd1349d1976500a68c48f630b7f22d7a0955524d768e34868880461335417ddd149c65a917c0eb0a4bf7224e24a1e04cf4ace5eef52205f4452e66ded937db9545f843a68b1e84a2e933cc05fb36d3db90e6c5faf1bee2249fdd06a7307849902a8bb24ec7e8a0886a4544ca47979a9dfeefe034bdfc5bd593904cfe9a5309dd199d337d3183f307c2cb39622549a5b9b8b485b7949a4803f63f67ca427a0640ad3793a519b2476c52198488e3e2e04cac202d624fb7d13c2*$/pkzip2$' } },
+    { modes: [17220], names: ['pkzip-multi-compressed'], isFast: false,
+      validate: (h) => _zip.validatePkzip(h, { multi: true }),
+      verify: verifyPkzip,
+      example: { password: 'hashcat', hash: '$pkzip2$3*1*1*0*8*24*a425*8827*d1730095cd829e245df04ebba6c52c0573d49d3bbeab6cb385b7fa8a28dcccd3098bfdd7*1*0*8*24*2a74*882a*51281ac874a60baedc375ca645888d29780e20d4076edd1e7154a99bde982152a736311f*2*0*e3*1c5*eda7a8de*0*29*8*e3*eda7*5096*1455781b59707f5151139e018bdcfeebfc89bc37e372883a7ec0670a5eafc622feb338f9b021b6601a674094898a91beac70e41e675f77702834ca6156111a1bf7361bc9f3715d77dfcdd626634c68354c6f2e5e0a7b1e1ce84a44e632d0f6e36019feeab92fb7eac9dda8df436e287aafece95d042059a1b27d533c5eab62c1c559af220dc432f2eb1a38a70f29e8f3cb5a207704274d1e305d7402180fd47e026522792f5113c52a116d5bb25b67074ffd6f4926b221555234aabddc69775335d592d5c7d22462b75de1259e8342a9ba71cb06223d13c7f51f13be2ad76352c3b8ed*$/pkzip2$' } },
+    { modes: [17225], names: ['pkzip-multi-mixed'], isFast: false,
+      validate: (h) => _zip.validatePkzip(h, { multi: true }),
+      verify: verifyPkzip,
+      example: { password: 'hashcat', hash: '$pkzip2$3*1*1*0*0*24*3e2c*3ef8*0619e9d17ff3f994065b99b1fa8aef41c056edf9fa4540919c109742dcb32f797fc90ce0*1*0*8*24*431a*3f26*18e2461c0dbad89bd9cc763067a020c89b5e16195b1ac5fa7fb13bd246d000b6833a2988*2*0*23*17*1e3c1a16*2e4*2f*0*23*1e3c*3f2d*54ea4dbc711026561485bbd191bf300ae24fa0997f3779b688cdad323985f8d3bb8b0c*$/pkzip2$' } },
+    { modes: [11600], names: ['7zip'], isFast: false,
+      validate: (h) => /^\$7z\$\d+\$\d+\$\d+\$[0-9a-fA-F]*\$\d+\$[0-9a-fA-F]+\$\d+\$\d+\$\d+\$[0-9a-fA-F]+/.test(h),
+      verify: verify7z,
+      example: { password: 'hashcat', hash: '$7z$0$14$0$$11$33363437353138333138300000000000$2365089182$16$12$d00321533b483f54a523f624a5f63269' } },
     { modes: [16600], names: ['electrum-salt1'], isFast: false,
       validate: (h) => /^\$electrum\$[123]\*[0-9a-fA-F]{32}\*[0-9a-fA-F]{32}$/.test(h),
       verify: verifyElectrum16600,
@@ -1240,6 +1280,12 @@ export function getPossibleHashTypes(hash) {
 }
 
 export const availableHashTypes = HASH_REGISTRY.map((entry) => entry.names[0]);
+
+// File -> hashcat-hash extraction. extract(fileBytes[, 'zip'|'7z'|'rar'|'office'|'wpa'])
+// sniffs the container (or uses the hint) and returns [{type, mode, name, file, hash}]
+// lines ready for verifyHash()/hashcat. detectFileType(bytes) returns the format id.
+export const extract = _extract.extract;
+export const detectFileType = _extract.detect;
 
 // Comprehensive catalogue: one object per registered hash type with its mode number(s),
 // name(s), and capability flags (fast = single-shot; generatable = has a generator).

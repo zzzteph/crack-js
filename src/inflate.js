@@ -29,9 +29,10 @@ var _FIXED_LIT = (function () {
 })();
 var _FIXED_DIST = _buildHuffman(new Array(30).fill(5));
 
-function inflateRaw(input) {
+function inflateRaw(input, maxOut) {
     var out = [], pos = 0, bitBuf = 0, bitCnt = 0;
-    function getBit() { if (bitCnt === 0) { bitBuf = input[pos++] | 0; bitCnt = 8; } var b = bitBuf & 1; bitBuf >>= 1; bitCnt--; return b; }
+    var cap = (maxOut != null && maxOut >= 0) ? (maxOut + 16) : 0x4000000;   // bound output so garbage input can't exhaust memory
+    function getBit() { if (bitCnt === 0) { if (pos >= input.length) throw new Error('inflate: eof'); bitBuf = input[pos++] | 0; bitCnt = 8; } var b = bitBuf & 1; bitBuf >>= 1; bitCnt--; return b; }
     function getBits(n) { var v = 0; for (var i = 0; i < n; i++) v |= getBit() << i; return v; }
     function decode(h) {
         var code = 0, len = 0;
@@ -45,6 +46,7 @@ function inflateRaw(input) {
         if (btype === 0) {
             bitCnt = 0; // skip to byte boundary
             var blen = input[pos] | (input[pos + 1] << 8); pos += 4; // len + ~len
+            if (pos + blen > input.length || out.length + blen > cap) throw new Error('inflate: eof');
             for (k = 0; k < blen; k++) out.push(input[pos++] & 0xff);
         } else if (btype === 1 || btype === 2) {
             var litH, distH;
@@ -67,7 +69,7 @@ function inflateRaw(input) {
             }
             while (true) {
                 var s = decode(litH);
-                if (s < 256) out.push(s);
+                if (s < 256) { out.push(s); if (out.length > cap) throw new Error('inflate: overflow'); }
                 else if (s === 256) break;
                 else {
                     s -= 257;
@@ -75,6 +77,7 @@ function inflateRaw(input) {
                     var ds = decode(distH);
                     var dist = _DIST_BASE[ds] + getBits(_DIST_EXTRA[ds]);
                     var start = out.length - dist;
+                    if (start < 0 || out.length + length > cap) throw new Error('inflate: overflow');
                     for (k = 0; k < length; k++) out.push(out[start + k]);
                 }
             }

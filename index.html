@@ -9,7 +9,7 @@
     --bg:#0c0e0d; --bg2:#101312; --panel:#121513; --raised:#171a18;
     --border:#232826; --border2:#343b37;
     --fg:#dde2df; --accent:#54cf8a; --accent2:#54cf8a; --dim:#8a928c;
-    --modecol:#8fcaa9; --good:#54cf8a; --red:#df7a7a;
+    --modecol:#8fcaa9; --good:#54cf8a; --red:#df7a7a; --warn:#e0aa5a;
     --glow:transparent;
     --mono:'JetBrains Mono','Fira Code','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,Consolas,'DejaVu Sans Mono',monospace;
   }
@@ -17,10 +17,9 @@
     --bg:#0e0d0a; --bg2:#131210; --panel:#151311; --raised:#1a1815;
     --border:#2a2620; --border2:#41392d;
     --fg:#e2ddd4; --accent:#e0aa5a; --accent2:#e0aa5a; --dim:#948c7e;
-    --modecol:#d6c199; --good:#e0aa5a; --red:#df7a6a;
+    --modecol:#d6c199; --good:#e0aa5a; --red:#df7a6a; --warn:#54cf8a;
     --glow:transparent;
   }
-
   *{box-sizing:border-box}
   html,body{margin:0}
   body{
@@ -29,186 +28,186 @@
     background-image:radial-gradient(120% 90% at 50% -10%, var(--bg2) 0%, var(--bg) 62%);
     min-height:100vh;overflow-x:hidden;
   }
-  /* CRT scanline + flicker overlay */
-  body::before{content:none}  /* scanlines removed for readability */
   ::selection{background:var(--accent);color:#000}
   a{color:var(--accent2);text-decoration:none;border-bottom:1px dotted var(--accent2)}
-  a:hover{text-shadow:0 0 6px var(--glow)}
 
-  .wrap{max-width:1000px;margin:0 auto;padding:26px 16px 70px}
-
-  /* terminal window */
+  .wrap{max-width:1160px;margin:0 auto;padding:26px 16px 70px}
   .terminal{border:1px solid var(--border2);border-radius:8px;background:var(--panel);
     box-shadow:0 0 0 1px rgba(0,0,0,.4) inset, 0 10px 34px rgba(0,0,0,.42);overflow:hidden}
-  .titlebar{display:flex;align-items:center;gap:12px;padding:9px 12px;background:var(--raised);
-    border-bottom:1px solid var(--border2)}
+  .titlebar{display:flex;align-items:center;gap:12px;padding:9px 12px;background:var(--raised);border-bottom:1px solid var(--border2)}
   .dots{display:flex;gap:7px}
   .dots i{width:11px;height:11px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.4)}
   .dots i:nth-child(1){background:#3d443f}.dots i:nth-child(2){background:#3d443f}.dots i:nth-child(3){background:var(--accent)}
   .titlebar .ttl{flex:1;text-align:center;color:var(--dim);font-size:12px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .phosphor-btn{appearance:none;background:transparent;border:1px solid var(--border2);color:var(--dim);
     border-radius:5px;padding:4px 9px;font-family:var(--mono);font-size:11px;cursor:pointer;white-space:nowrap}
-  .phosphor-btn:hover{color:var(--accent);border-color:var(--accent);text-shadow:0 0 6px var(--glow)}
+  .phosphor-btn:hover{color:var(--accent);border-color:var(--accent)}
   .phosphor-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
   .screen{padding:24px 22px 26px}
-
-  /* banner wordmark */
-  .banner{font-size:clamp(32px,7.5vw,60px);font-weight:800;letter-spacing:.03em;line-height:1;margin:6px 0 2px;
-    color:var(--accent);}
+  .banner{font-size:clamp(30px,7vw,54px);font-weight:800;letter-spacing:.03em;line-height:1;margin:6px 0 2px;color:var(--accent)}
   .banner .sep{color:var(--dim)}
-  .banner .cursor{color:var(--accent);opacity:.85}
-  .tagline{color:var(--dim);font-size:12.5px;margin:10px 0 20px;max-width:70ch}
+  .tagline{color:var(--dim);font-size:12.5px;margin:10px 0 18px;max-width:74ch}
   .tagline b{color:var(--fg)}
-
-  /* boot log (stats) */
-  .bootlog{margin:0 0 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);padding:8px 12px}
+  .bootlog{margin:0;border:1px solid var(--border);border-radius:6px;background:var(--bg2);padding:8px 12px}
   .bootline{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:3px 0;font-size:12.5px}
   .bootline + .bootline{border-top:1px dotted var(--border)}
-  .bl-msg{color:var(--dim)}
-  .bl-msg::before{content:"> ";color:var(--accent)}
-  .bl-ok{color:var(--accent);white-space:nowrap;text-shadow:0 0 6px var(--glow)}
+  .bl-msg{color:var(--dim)} .bl-msg::before{content:"> ";color:var(--accent)}
+  .bl-ok{color:var(--accent);white-space:nowrap}
 
-  /* tabs = command menu */
-  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 0}
+  /* app = content + right-hand nav panel */
+  .app{display:flex;gap:22px;align-items:flex-start;margin-top:22px}
+  .content{flex:1;min-width:0}
+  .sidenav{width:196px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;position:sticky;top:16px}
+  .sidenav .navlabel{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding:0 2px 2px}
   .tab{appearance:none;background:transparent;border:1px solid var(--border2);color:var(--dim);
-    font-family:var(--mono);font-size:13px;padding:8px 14px;border-radius:5px;cursor:pointer;letter-spacing:.02em}
+    font-family:var(--mono);font-size:13px;padding:10px 14px;border-radius:5px;cursor:pointer;letter-spacing:.02em;text-align:left;width:100%}
   .tab::before{content:"./";color:var(--dim)}
   .tab:hover{color:var(--fg);border-color:var(--accent)}
-  .tab[aria-selected="true"]{color:#000;background:var(--accent);border-color:var(--accent);text-shadow:none;box-shadow:0 0 18px var(--glow)}
+  .tab[aria-selected="true"]{color:#000;background:var(--accent);border-color:var(--accent)}
   .tab[aria-selected="true"]::before{content:"▸ ";color:#000}
   .tab:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
 
-  .panel{display:none;padding:22px 0 0}
-  .panel.active{display:block}
+  .panel{display:none} .panel.active{display:block}
+  h2.ptitle{font-size:15px;color:var(--fg);margin:0 0 4px;font-weight:700}
+  h2.ptitle .cmd{color:var(--accent)}
+  .psub{color:var(--dim);font-size:12.5px;margin:0 0 16px;max-width:78ch}
 
-  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
-  .prompt{color:var(--accent);font-size:13px;white-space:nowrap}
-  .prompt b{color:var(--modecol);font-weight:400}
-
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px}
+  .prompt{color:var(--accent);font-size:13px;white-space:nowrap} .prompt b{color:var(--modecol);font-weight:400}
   button.btn{appearance:none;background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:5px;
     padding:9px 14px;font-family:var(--mono);font-size:13px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.05em}
   button.btn::before{content:"[ "}button.btn::after{content:" ]"}
-  button.btn:hover{background:var(--accent);color:#000;box-shadow:0 0 18px var(--glow)}
-  button.btn:disabled{opacity:.4;cursor:default;background:transparent;color:var(--dim);border-color:var(--border2);box-shadow:none}
+  button.btn:hover{background:var(--accent);color:#000}
+  button.btn:disabled{opacity:.4;cursor:default;background:transparent;color:var(--dim);border-color:var(--border2)}
   button.btn.ghost{color:var(--dim);border-color:var(--border2)}
-  button.btn.ghost:hover{color:var(--fg);border-color:var(--fg);background:transparent;box-shadow:none}
+  button.btn.ghost::before,button.btn.ghost::after{content:""}
+  button.btn.ghost{padding:9px 12px;text-transform:none;font-weight:400}
+  button.btn.ghost:hover{color:var(--fg);border-color:var(--fg);background:transparent}
+  button.btn.sm{padding:5px 10px;font-size:11px}
   button.btn:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
-
   label.field{font-size:12.5px;color:var(--dim);display:flex;align-items:center;gap:7px}
   input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px}
   select,input[type=number],input[type=text]{font-family:var(--mono);font-size:13px;background:var(--bg2);color:var(--fg);
     border:1px solid var(--border2);border-radius:5px;padding:8px 10px;caret-color:var(--accent)}
-  select:focus,input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 14px var(--glow)}
-  .hint{font-size:12.5px;color:var(--dim)}
-  .hint b{color:var(--fg)}
+  select:focus,input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .hint{font-size:12.5px;color:var(--dim)} .hint b{color:var(--fg)}
+  textarea{width:100%;min-height:84px;font-family:var(--mono);font-size:13.5px;background:var(--bg2);color:var(--fg);
+    border:1px solid var(--border2);border-radius:6px;padding:11px 13px;resize:vertical;line-height:1.5;caret-color:var(--accent)}
 
-  .progress{height:4px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;overflow:hidden;margin:4px 0 14px;display:none}
+  .progress{height:5px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;overflow:hidden;margin:4px 0 14px;display:none}
   .progress.on{display:block}
-  .progress > i{display:block;height:100%;width:0;background:var(--accent);box-shadow:0 0 12px var(--glow);transition:width .12s linear}
+  .progress > i{display:block;height:100%;width:0;background:var(--accent);transition:width .12s linear}
   .statusline{font-size:12.5px;color:var(--dim);min-height:1.3em;margin-bottom:12px}
   .statusline::before{content:"$ ";color:var(--accent)}
 
   .tblwrap{overflow-x:auto;border:1px solid var(--border2);border-radius:6px;background:var(--bg2)}
   table{border-collapse:collapse;width:100%;font-size:13px}
-  thead th{text-align:left;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
-    font-weight:600;padding:10px 14px;border-bottom:1px solid var(--border2);white-space:nowrap;
-    position:sticky;top:0;background:var(--raised)}
+  thead th{text-align:left;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:600;
+    padding:10px 14px;border-bottom:1px solid var(--border2);white-space:nowrap;position:sticky;top:0;background:var(--raised)}
   th.num,td.num{text-align:right}
   tbody td{padding:7px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
   tbody tr:last-child td{border-bottom:0}
   tbody tr:hover{background:rgba(0,255,156,.06)}
   :root[data-phosphor="amber"] tbody tr:hover{background:rgba(255,180,74,.07)}
-  td.mode{color:var(--modecol);font-size:12.5px;white-space:nowrap}
-  td.mode::before{content:"-m ";color:var(--dim)}
+  td.mode{color:var(--modecol);font-size:12.5px;white-space:nowrap} td.mode::before{content:"-m ";color:var(--dim)}
   td.name{color:var(--fg);white-space:nowrap}
-  td.hash{font-size:11.5px;word-break:break-all;color:var(--dim);max-width:560px;cursor:pointer}
-  td.hash:hover{color:var(--fg)}
+  td.hash{font-size:11.5px;word-break:break-all;color:var(--dim);max-width:520px;cursor:pointer} td.hash:hover{color:var(--fg)}
   td.hps{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--accent)}
   .rank{color:var(--dim);font-size:12px}
-  .barcell{width:32%;min-width:110px}
-  .bar{height:7px;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));min-width:2px;box-shadow:0 0 10px var(--glow)}
+  .barcell{width:30%;min-width:100px}
+  .bar{height:7px;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));min-width:2px}
   .pill{display:inline-block;font-size:10px;padding:1px 7px;border-radius:3px;border:1px solid var(--border2);color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
   .pill.fast{color:var(--good);border-color:var(--good)}
+  .pill.warnp{color:var(--warn);border-color:var(--warn)}
 
-  textarea{width:100%;min-height:88px;font-family:var(--mono);font-size:13.5px;background:var(--bg2);color:var(--fg);
-    border:1px solid var(--border2);border-radius:6px;padding:11px 13px;resize:vertical;line-height:1.5;caret-color:var(--accent)}
   .results{margin-top:16px}
   .match{display:flex;align-items:baseline;gap:12px;padding:9px 13px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);margin-bottom:7px}
   .match:hover{border-color:var(--accent)}
-  .match .m-mode{color:var(--modecol);font-size:13px;min-width:64px}
-  .match .m-name{color:var(--fg)}
+  .match .m-mode{color:var(--modecol);font-size:13px;min-width:64px} .match .m-name{color:var(--fg)}
   .match .m-flags{margin-left:auto;display:flex;gap:6px}
   .empty{color:var(--dim);font-size:13px;padding:14px;border:1px dashed var(--border2);border-radius:6px;text-align:center}
   .empty::before{content:"// ";color:var(--red)}
   .examples{margin-top:14px;font-size:12.5px;color:var(--dim)}
   .examples code{background:var(--bg2);border:1px solid var(--border);padding:2px 7px;border-radius:4px;cursor:pointer;color:var(--fg)}
-  .examples code:hover{color:var(--accent);border-color:var(--accent);text-shadow:0 0 6px var(--glow)}
+  .examples code:hover{color:var(--accent);border-color:var(--accent)}
 
-  footer{margin-top:26px;color:var(--dim);font-size:12px}
-  footer::before{content:"# ";color:var(--accent)}
-  .load-err{background:rgba(255,95,95,.08);border:1px solid var(--red);color:var(--fg);padding:14px 16px;border-radius:6px;margin:18px 0}
-  .load-err b{color:var(--red)}
-  .load-err code{background:var(--bg2);padding:1px 6px;border-radius:4px;color:var(--accent)}
+  /* drop zone (extract + brute file intake) */
+  .drop{border:1px dashed var(--border2);border-radius:7px;background:var(--bg2);padding:20px 16px;text-align:center;cursor:pointer;color:var(--dim);transition:border-color .15s,background .15s}
+  .drop:hover,.drop.over{border-color:var(--accent);color:var(--fg);background:rgba(84,207,138,.05)}
+  .drop b{color:var(--accent)} .drop .sub{font-size:11.5px;margin-top:5px;display:block}
 
-  /* crack tab */
-  .wordlists{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 16px}
-  .wl-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--fg);border:1px solid var(--border2);
-    border-radius:5px;padding:6px 11px;background:var(--bg2);cursor:pointer;user-select:none}
+  /* wordlists */
+  .wordlists{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 8px}
+  .wl-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--fg);border:1px solid var(--border2);border-radius:5px;padding:6px 11px;background:var(--bg2);cursor:pointer;user-select:none}
   .wl-item:hover{border-color:var(--accent)}
-  .wl-item input{accent-color:var(--accent);width:14px;height:14px}
-  .wl-item .wl-count{color:var(--dim);font-size:11px}
-  button.btn.sm{padding:5px 10px;font-size:11px}
-  .tasks{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  .wl-item input{width:14px;height:14px} .wl-item .wl-count{color:var(--dim);font-size:11px}
+
+  /* attack config blocks */
+  .cfgbox{border:1px solid var(--border);border-radius:6px;background:var(--bg2);padding:13px 14px;margin:2px 0 14px}
+  .cfgbox.hidden{display:none}
+  .cfg-row{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center}
+  .charset-toggles{display:flex;flex-wrap:wrap;gap:8px}
+  .cs-tog{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg);border:1px solid var(--border2);border-radius:5px;padding:5px 9px;background:var(--bg);cursor:pointer}
+  .cs-tog:hover{border-color:var(--accent)}
+  .len-in{width:64px}
+  .space-est{font-size:12px;color:var(--dim);margin-top:8px} .space-est b{color:var(--warn)}
+
+  /* tasks */
+  .tasks{display:flex;flex-direction:column;gap:10px;margin-top:8px}
   .task{border:1px solid var(--border2);border-radius:6px;background:var(--bg2);padding:11px 13px}
-  .task.done{border-color:var(--accent);box-shadow:0 0 16px var(--glow)}
+  .task.done{border-color:var(--accent)}
   .task-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px}
   .task-id{color:var(--accent);font-weight:700}
-  .task-mode{color:var(--modecol);font-size:12.5px}
-  .task-mode .thash{color:var(--dim)}
-  .task-status{color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
-    border:1px solid var(--border2);border-radius:3px;padding:1px 8px;white-space:nowrap}
+  .task-mode{color:var(--modecol);font-size:12.5px} .task-mode .thash{color:var(--dim)}
+  .task-status{color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;border:1px solid var(--border2);border-radius:3px;padding:1px 8px;white-space:nowrap}
   .task.done .task-status{color:var(--accent);border-color:var(--accent)}
   .task-status.err{color:var(--red);border-color:var(--red)}
   .task-btns{margin-left:auto;display:flex;gap:7px}
   .task .progress{margin:9px 0 8px;display:block}
-  .task-meta{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--dim)}
+  .task-meta{display:flex;flex-wrap:wrap;gap:10px 16px;font-size:12px;color:var(--dim)}
   .task-meta b{color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}
-  .task-meta .cracked b{color:var(--accent);text-shadow:0 0 6px var(--glow)}
-  .pot{margin:2px 0 14px}
-  .pot-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--dim);
-    border:1px solid var(--accent);border-radius:5px 5px 0 0;background:var(--bg2);padding:8px 12px}
-  .pot-head b{color:var(--accent);text-shadow:0 0 6px var(--glow)}
-  .pot-btns{margin-left:auto;display:flex;gap:7px}
-  .pot-list{border:1px solid var(--accent);border-top:0;border-radius:0 0 5px 5px;background:var(--bg);
-    padding:10px 12px;max-height:190px;overflow:auto;font-size:12px;color:var(--fg);word-break:break-all;line-height:1.7}
+  .task-meta .cracked b{color:var(--accent)}
+  .task-meta .eta b{color:var(--warn)}
+  .task-step{font-size:11.5px;color:var(--dim);margin-top:6px} .task-step b{color:var(--modecol)}
 
-  /* no blinking caret / no motion — kept static for readability */
+  .pot{margin:12px 0 14px}
+  .pot-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--dim);border:1px solid var(--accent);border-radius:5px 5px 0 0;background:var(--bg2);padding:8px 12px}
+  .pot-head b{color:var(--accent)} .pot-btns{margin-left:auto;display:flex;gap:7px}
+  .pot-list{border:1px solid var(--accent);border-top:0;border-radius:0 0 5px 5px;background:var(--bg);padding:10px 12px;max-height:180px;overflow:auto;font-size:12px;color:var(--fg);word-break:break-all;line-height:1.7}
+
+  /* workflows */
+  .wf-card{border:1px solid var(--border2);border-radius:6px;background:var(--bg2);padding:12px 13px;margin-bottom:10px}
+  .wf-card .wf-name{color:var(--accent);font-weight:700}
+  .wf-card .wf-desc{color:var(--dim);font-size:12px;margin-top:4px}
+  .wf-card .wf-actions{margin-top:9px;display:flex;gap:7px;flex-wrap:wrap}
+  .wf-step{border:1px solid var(--border);border-radius:6px;background:var(--bg);padding:11px 12px;margin-bottom:9px}
+  .wf-step-head{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+  .wf-step-head .stepno{color:var(--accent);font-weight:700;font-size:12px}
+  .wf-step-head .sp{margin-left:auto;display:flex;gap:6px}
+  .wf-mini{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:12px;color:var(--dim)}
+  .wf-mini .wl-item{padding:4px 9px;font-size:11.5px}
+  .step-tag{display:inline-block;font-size:10px;padding:1px 7px;border-radius:3px;border:1px solid var(--border2);color:var(--modecol);text-transform:uppercase;letter-spacing:.05em}
+
+  footer{margin-top:26px;color:var(--dim);font-size:12px} footer::before{content:"# ";color:var(--accent)}
+  .load-err{background:rgba(255,95,95,.08);border:1px solid var(--red);color:var(--fg);padding:14px 16px;border-radius:6px;margin:18px 0}
+  .load-err b{color:var(--red)} .load-err code{background:var(--bg2);padding:1px 6px;border-radius:4px;color:var(--accent)}
+
+  @media (max-width:820px){
+    .app{flex-direction:column}
+    .sidenav{width:auto;position:static;flex-direction:row;flex-wrap:wrap}
+    .sidenav .navlabel{display:none}
+    .tab{flex:1 1 40%;text-align:center;min-height:42px}
+  }
   @media (max-width:600px){
     body{font-size:13.5px}
     .wrap{padding:12px 9px 54px}
     .screen{padding:16px 12px}
-    .titlebar{padding:8px 10px}
     .titlebar .ttl{display:none}
-    .banner{font-size:clamp(30px,12vw,52px)}
-    .tagline{font-size:12px;margin-bottom:16px}
-    .bootlog{padding:7px 10px}
-    .bl-msg{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .tabs{gap:6px}
-    .tab{flex:1 1 42%;text-align:center;min-height:40px;padding:9px 6px}
+    .banner{font-size:clamp(28px,11vw,48px)}
     .controls{gap:9px}
-    button.btn{padding:11px 14px}
-    label.field{flex-wrap:wrap}
-    select,input[type=text],input[type=number]{max-width:100%;min-width:0}
-    #pwin{min-width:0 !important;flex:1 1 150px}
-    #crack-mode{flex:1;min-width:0}
-    .task-head{gap:8px}
-    .task-btns{margin-left:0;width:100%}
-    .task-btns .btn{flex:1}
-    .task-meta{gap:10px 14px}
-    .pot-btns{margin-left:0;width:100%}
-    .pot-btns .btn{flex:1}
-    .pot-list{max-height:150px}
+    .task-btns{margin-left:0;width:100%} .task-btns .btn{flex:1}
+    .pot-btns{margin-left:0;width:100%} .pot-btns .btn{flex:1}
   }
 </style>
 </head>
@@ -222,508 +221,751 @@
     </div>
     <div class="screen">
       <h1 class="banner"><span>crack</span><span class="sep">-</span><span>js</span></h1>
-      <p class="tagline">pure-javascript hashcat-format engine — <b>verify · identify · generate · benchmark</b>
-        hundreds of hash modes with no server and no dependency beyond crypto-js. everything below runs in your browser.</p>
-
+      <p class="tagline">pure-javascript hashcat-format engine — <b>benchmark · generate · extract · identify · brute</b>.
+        hundreds of hash modes, archive/file hash extraction, and dynamic cracking workflows — no server, no dependency beyond crypto-js. everything below runs in your browser.</p>
       <div class="bootlog" id="stats"></div>
 
-      <div class="tabs" role="tablist">
-        <button class="tab" id="tab-speed" role="tab" aria-selected="true" aria-controls="panel-speed">benchmark</button>
-        <button class="tab" id="tab-id" role="tab" aria-selected="false" aria-controls="panel-id">identify</button>
-        <button class="tab" id="tab-gen" role="tab" aria-selected="false" aria-controls="panel-gen">generate</button>
-        <button class="tab" id="tab-crack" role="tab" aria-selected="false" aria-controls="panel-crack">crack</button>
+      <div class="app">
+        <main class="content">
+
+          <!-- BENCHMARK -->
+          <section class="panel active" id="panel-speed" role="tabpanel">
+            <h2 class="ptitle"><span class="cmd">./benchmark</span> — hashes/sec per mode</h2>
+            <p class="psub">measures raw calculation throughput for every mode, in-browser. “fast” = single-shot unsalted hash (md5, sha1, ntlm…) — millions/sec. “slow” = salted &amp; iterated by design (bcrypt, pbkdf2, scrypt, argon2) — far fewer.</p>
+            <div class="controls">
+              <button class="btn" id="run-bench">benchmark</button>
+              <button class="btn ghost" id="stop-bench" disabled>stop</button>
+              <label class="field">time/type
+                <select id="dur"><option value="100">100 ms</option><option value="250" selected>250 ms</option><option value="500">500 ms</option><option value="1000">1 s</option></select>
+              </label>
+              <label class="field"><input type="checkbox" id="fastonly"> fast modes only</label>
+            </div>
+            <div class="progress" id="prog"><i></i></div>
+            <div class="statusline" id="bench-status">hit [ benchmark ] to measure throughput for every mode.</div>
+            <div class="tblwrap" id="speed-tblwrap" style="display:none">
+              <table><thead><tr><th>#</th><th>Mode</th><th>Name</th><th class="num">Hashes / sec</th><th>Relative</th></tr></thead><tbody id="speed-body"></tbody></table>
+            </div>
+          </section>
+
+          <!-- GENERATE -->
+          <section class="panel" id="panel-gen" role="tabpanel">
+            <h2 class="ptitle"><span class="cmd">./generate</span> — password → hash</h2>
+            <p class="psub">pick a mode, type a password, and emit its hash. choose “all generatable” to emit every mode at once. click a hash to copy it.</p>
+            <div class="controls">
+              <span class="prompt">echo -n</span>
+              <input type="text" id="pwin" value="hashcat" spellcheck="false" autocomplete="off" style="min-width:150px">
+              <label class="field">mode <select id="gen-mode"></select></label>
+              <button class="btn" id="run-gen">generate</button>
+              <label class="field"><input type="text" id="filtergen" placeholder="grep…" style="min-width:110px"></label>
+            </div>
+            <div class="progress" id="gprog"><i></i></div>
+            <div class="statusline" id="gen-status">pick a mode + password, then generate.</div>
+            <div class="tblwrap" id="gen-tblwrap" style="display:none">
+              <table><thead><tr><th>Mode</th><th>Name</th><th>Hash</th></tr></thead><tbody id="gen-body"></tbody></table>
+            </div>
+          </section>
+
+          <!-- EXTRACT -->
+          <section class="panel" id="panel-ext" role="tabpanel">
+            <h2 class="ptitle"><span class="cmd">./extract</span> — file → hashcat hash</h2>
+            <p class="psub">drop an encrypted <b>.zip / .7z / .docx / .xlsx / .rar</b>, a Wi-Fi capture (<b>.hccapx / .pcap</b>), or a hash file — crack-js sniffs the format and pulls out a ready-to-crack hashcat line.</p>
+            <div class="drop" id="ext-drop">
+              <b>drop a file here</b> or click to choose
+              <span class="sub">zip · 7z · office · rar · hccapx · pmkid/22000 text — nothing is uploaded, it stays in your browser</span>
+            </div>
+            <input type="file" id="ext-file" style="display:none" multiple>
+            <div class="statusline" id="ext-status" style="margin-top:12px">waiting for a file…</div>
+            <div class="tblwrap" id="ext-tblwrap" style="display:none">
+              <table><thead><tr><th>Type</th><th>Mode</th><th>Name</th><th>File</th><th>Hash</th><th></th></tr></thead><tbody id="ext-body"></tbody></table>
+            </div>
+            <div class="controls" id="ext-actions" style="display:none;margin-top:14px">
+              <button class="btn" id="ext-tobrute">send all → brute</button>
+              <button class="btn ghost" id="ext-copy">copy all</button>
+            </div>
+          </section>
+
+          <!-- IDENTIFY -->
+          <section class="panel" id="panel-id" role="tabpanel">
+            <h2 class="ptitle"><span class="cmd">./identify</span> — what is this hash?</h2>
+            <p class="psub">paste a hash — it is matched against every known format.</p>
+            <textarea id="hashin" placeholder="e.g.  5f4dcc3b5aa765d61d8327deb882cf99"></textarea>
+            <div class="controls" style="margin-top:12px">
+              <button class="btn" id="run-id">identify</button>
+              <button class="btn ghost" id="clear-id">clear</button>
+            </div>
+            <div class="examples">try:
+              <code data-h="5f4dcc3b5aa765d61d8327deb882cf99">md5</code>
+              <code data-h="5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8">sha1</code>
+              <code data-h="$2a$05$/VT2Xs2dMd8GJKfrXhjYP.DkTjOVrY12yDN7/6I8ZV0q/1lEohLru">bcrypt</code>
+              <code data-h="$1$28772684$iEwNOgGugqO9.bIz5sk8k/">md5crypt</code>
+            </div>
+            <div class="results" id="id-results"></div>
+          </section>
+
+          <!-- BRUTE -->
+          <section class="panel" id="panel-brute" role="tabpanel">
+            <h2 class="ptitle"><span class="cmd">./brute</span> — crack hashes</h2>
+            <p class="psub">paste target hashes, <b>or drop a file</b> to auto-extract and crack it. run a wordlist, wordlist + rules, pure bruteforce (charset + length), or one of your saved <b>workflows</b>. each task shows live speed and estimated time remaining.</p>
+
+            <div class="drop" id="brute-drop">
+              <b>drop an encrypted file</b> to auto-extract its hash &amp; start
+              <span class="sub">zip · 7z · docx · rar · hccapx — extracts, sets the mode, and launches with the current attack</span>
+            </div>
+            <input type="file" id="brute-file" style="display:none" multiple>
+
+            <label class="hint" style="display:block;margin:14px 0 6px">target hashes (one per line):</label>
+            <textarea id="brute-hashes" placeholder="5f4dcc3b5aa765d61d8327deb882cf99&#10;$7z$..."></textarea>
+
+            <div class="controls" style="margin-top:12px">
+              <label class="field">mode <select id="brute-mode"><option value="auto">auto-detect</option></select></label>
+              <label class="field">attack
+                <select id="attack-type">
+                  <option value="dict">wordlist</option>
+                  <option value="rules">wordlist + rules</option>
+                  <option value="brute">bruteforce (charset+length)</option>
+                  <option value="workflow">workflow</option>
+                </select>
+              </label>
+              <button class="btn" id="run-brute">crack</button>
+            </div>
+
+            <!-- wordlist picker (dict + rules) -->
+            <div class="cfgbox" id="cfg-wl">
+              <div class="hint" style="margin-bottom:8px">wordlists <button class="btn ghost sm" id="brute-upload" style="margin-left:6px">+ upload</button></div>
+              <input type="file" id="wl-file" accept=".txt,.lst,.dic,text/plain" multiple style="display:none">
+              <div class="wordlists" id="brute-wordlists"></div>
+            </div>
+
+            <!-- rules -->
+            <div class="cfgbox hidden" id="cfg-rules">
+              <div class="cfg-row" style="margin-bottom:8px">
+                <label class="field">preset <select id="rule-preset">
+                  <option value="">— fill rules —</option>
+                  <option value="best">best (small)</option>
+                  <option value="digit">append 0-9</option>
+                  <option value="digit2">append 00-99</option>
+                  <option value="capdigit">capitalize + 0-9</option>
+                  <option value="leet">leet (a@ e3 i1 o0 s$)</option>
+                  <option value="caserev">case / reverse / dup</option>
+                </select></label>
+                <span class="hint">one rule per line — <b>full hashcat rules engine</b> (<code>: l u c r d $x ^x sXY iNX oNX *NM TN zN ZN</code> …)</span>
+              </div>
+              <textarea id="brute-rules" style="min-height:110px">:
+c
+$1
+$1$2$3
+r</textarea>
+            </div>
+
+            <!-- bruteforce -->
+            <div class="cfgbox hidden" id="cfg-brute">
+              <div class="hint" style="margin-bottom:8px">charset</div>
+              <div class="charset-toggles" id="charset-toggles">
+                <label class="cs-tog"><input type="checkbox" data-cs="l" checked> a-z</label>
+                <label class="cs-tog"><input type="checkbox" data-cs="u"> A-Z</label>
+                <label class="cs-tog"><input type="checkbox" data-cs="d" checked> 0-9</label>
+                <label class="cs-tog"><input type="checkbox" data-cs="s"> symbols</label>
+              </div>
+              <div class="cfg-row" style="margin-top:12px">
+                <label class="field">custom <input type="text" id="cs-custom" placeholder="extra chars" style="width:150px"></label>
+                <label class="field">min len <input type="number" id="bf-min" class="len-in" value="1" min="1" max="12"></label>
+                <label class="field">max len <input type="number" id="bf-max" class="len-in" value="4" min="1" max="12"></label>
+              </div>
+              <div class="space-est" id="bf-est"></div>
+            </div>
+
+            <!-- workflow picker -->
+            <div class="cfgbox hidden" id="cfg-workflow">
+              <div class="cfg-row">
+                <label class="field">run workflow <select id="attack-wf"></select></label>
+                <span class="hint">build &amp; edit these in the <b>workflows</b> tab →</span>
+              </div>
+            </div>
+
+            <div class="statusline" id="brute-status">each task runs in the background — launch as many as you like.</div>
+            <div class="pot" id="brute-pot"></div>
+            <div class="tasks" id="brute-tasks"></div>
+          </section>
+
+          <!-- WORKFLOWS -->
+          <section class="panel" id="panel-wf" role="tabpanel">
+            <h2 class="ptitle"><span class="cmd">./workflows</span> — chained attacks</h2>
+            <p class="psub">build a sequence of steps — e.g. <i>fast wordlist → wordlist + rules → bruteforce</i>. crack-js runs them in order and stops the moment a hash falls. saved in this browser; pick one from the <b>brute</b> tab.</p>
+            <div class="controls">
+              <button class="btn" id="wf-new">new workflow</button>
+            </div>
+            <div id="wf-editor" style="display:none">
+              <div class="cfgbox">
+                <div class="cfg-row" style="margin-bottom:12px">
+                  <label class="field">name <input type="text" id="wf-name" placeholder="e.g. quick → rules → brute" style="min-width:220px"></label>
+                </div>
+                <div id="wf-steps"></div>
+                <div class="controls" style="margin-top:6px">
+                  <button class="btn ghost sm" id="wf-addstep">+ add step</button>
+                </div>
+                <div class="controls" style="margin-top:10px">
+                  <button class="btn" id="wf-save">save workflow</button>
+                  <button class="btn ghost" id="wf-cancel">cancel</button>
+                </div>
+              </div>
+            </div>
+            <div id="wf-list"></div>
+          </section>
+
+          <footer id="footer">booting crack-js…</footer>
+        </main>
+
+        <nav class="sidenav" role="tablist" aria-label="sections">
+          <div class="navlabel">// sections</div>
+          <button class="tab" id="tab-speed" role="tab" aria-selected="true" aria-controls="panel-speed">benchmark</button>
+          <button class="tab" id="tab-gen" role="tab" aria-selected="false" aria-controls="panel-gen">generate</button>
+          <button class="tab" id="tab-ext" role="tab" aria-selected="false" aria-controls="panel-ext">extract</button>
+          <button class="tab" id="tab-id" role="tab" aria-selected="false" aria-controls="panel-id">identify</button>
+          <button class="tab" id="tab-brute" role="tab" aria-selected="false" aria-controls="panel-brute">brute</button>
+          <button class="tab" id="tab-wf" role="tab" aria-selected="false" aria-controls="panel-wf">workflows</button>
+        </nav>
       </div>
-
-      <!-- SPEED -->
-      <section class="panel active" id="panel-speed" role="tabpanel" aria-labelledby="tab-speed">
-        <div class="controls">
-          <button class="btn" id="run-bench">benchmark</button>
-          <button class="btn ghost" id="stop-bench" disabled>stop</button>
-          <label class="field">time/type
-            <select id="dur"><option value="100">100 ms</option><option value="250" selected>250 ms</option><option value="500">500 ms</option><option value="1000">1 s</option></select>
-          </label>
-          <label class="field" title="Fast = single-shot hash (unsalted, one computation). Slow = salted/iterated: bcrypt, pbkdf2, scrypt, argon2."><input type="checkbox" id="fastonly"> fast modes only</label>
-        </div>
-        <div class="hint" style="margin:0 0 14px">“fast” = single-shot hash: unsalted, computed in one pass (md5, sha1, ntlm…) — millions/sec. “slow” = salted &amp; iterated by design (bcrypt, pbkdf2, scrypt, argon2) — far fewer.</div>
-        <div class="progress" id="prog"><i></i></div>
-        <div class="statusline" id="bench-status">./benchmark --all &nbsp; # measures calculation throughput (hashes/sec) for every mode, in-browser. hit [ benchmark ]</div>
-        <div class="tblwrap" id="speed-tblwrap" style="display:none">
-          <table>
-            <thead><tr><th>#</th><th>Mode</th><th>Name</th><th class="num">Hashes / sec</th><th>Relative</th></tr></thead>
-            <tbody id="speed-body"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- IDENTIFY -->
-      <section class="panel" id="panel-id" role="tabpanel" aria-labelledby="tab-id">
-        <label for="hashin" class="hint" style="display:block;margin-bottom:8px">./identify &nbsp; # paste a hash — it is matched against every known format:</label>
-        <textarea id="hashin" placeholder="e.g.  5f4dcc3b5aa765d61d8327deb882cf99"></textarea>
-        <div class="controls" style="margin-top:12px">
-          <button class="btn" id="run-id">identify</button>
-          <button class="btn ghost" id="clear-id">clear</button>
-        </div>
-        <div class="examples">try:
-          <code data-h="5f4dcc3b5aa765d61d8327deb882cf99">md5</code>
-          <code data-h="5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8">sha1</code>
-          <code data-h="$2a$05$/VT2Xs2dMd8GJKfrXhjYP.DkTjOVrY12yDN7/6I8ZV0q/1lEohLru">bcrypt</code>
-          <code data-h="$1$28772684$iEwNOgGugqO9.bIz5sk8k/">md5crypt</code>
-          <code data-h="7196759210defdc0">mysql323</code>
-        </div>
-        <div class="results" id="id-results"></div>
-      </section>
-
-      <!-- GENERATE -->
-      <section class="panel" id="panel-gen" role="tabpanel" aria-labelledby="tab-gen">
-        <label for="pwin" class="hint" style="display:block;margin-bottom:8px">./generate &nbsp; # pick a mode, type a password, and emit its hash:</label>
-        <div class="controls">
-          <span class="prompt">root@crack-js:~$ <b>echo -n</b></span>
-          <input type="text" id="pwin" value="hashcat" spellcheck="false" autocomplete="off" style="min-width:170px">
-          <label class="field">mode <select id="gen-mode"></select></label>
-          <button class="btn" id="run-gen">generate</button>
-          <label class="field"><input type="text" id="filtergen" placeholder="grep (for all)…" style="min-width:120px"></label>
-        </div>
-        <div class="progress" id="gprog"><i></i></div>
-        <div class="statusline" id="gen-status">pick a mode, type a password, and hit generate. choose “all generatable” to emit every mode at once (slower). click a hash to copy it.</div>
-        <div class="tblwrap" id="gen-tblwrap" style="display:none">
-          <table><thead><tr><th>Mode</th><th>Name</th><th>Hash</th></tr></thead><tbody id="gen-body"></tbody></table>
-        </div>
-      </section>
-
-      <!-- CRACK -->
-      <section class="panel" id="panel-crack" role="tabpanel" aria-labelledby="tab-crack">
-        <label for="crack-hashes" class="hint" style="display:block;margin-bottom:8px">./crack &nbsp; # paste target hashes (one per line), choose a mode + wordlists, then launch a job:</label>
-        <textarea id="crack-hashes" placeholder="5f4dcc3b5aa765d61d8327deb882cf99&#10;5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8"></textarea>
-        <div class="controls" style="margin-top:12px">
-          <label class="field">mode
-            <select id="crack-mode"><option value="auto">auto-detect</option></select>
-          </label>
-          <button class="btn ghost" id="crack-upload">+ wordlist</button>
-          <input type="file" id="crack-file" accept=".txt,.lst,.dic,text/plain" multiple style="display:none">
-          <button class="btn" id="run-crack">crack</button>
-        </div>
-        <div class="wordlists" id="crack-wordlists"></div>
-        <div class="statusline" id="crack-status">each job runs in the background — launch as many as you like. every task shows live progress + speed, and a HASH:PASSWORD download when it finds something. recovered pairs are saved in this browser.</div>
-        <div class="pot" id="crack-pot"></div>
-        <div class="tasks" id="crack-tasks"></div>
-      </section>
-
-      <footer id="footer">booting crack-js…</footer>
     </div>
   </div>
 </div>
 
 <script src="dist/crack.js"></script>
+<script src="dist/hashcat-rules.js"></script>
 <script>
 (function(){
   var C = window.crack;
   var $ = function(id){ return document.getElementById(id); };
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 
-  // ---- phosphor toggle (green <-> amber CRT) ----
   $('themebtn').addEventListener('click', function(){
     var cur = document.documentElement.getAttribute('data-phosphor') || 'green';
     document.documentElement.setAttribute('data-phosphor', cur === 'amber' ? 'green' : 'amber');
   });
 
-  // ---- library guard ----
   if(!C || typeof C.measureSpeed !== 'function' || !Array.isArray(C.hashTypes)){
     document.querySelector('.screen').insertAdjacentHTML('afterbegin',
-      '<div class="load-err"><b>crack-js failed to load.</b> Make sure <code>dist/crack.js</code> sits next to this page (run <code>npm run build</code>), and serve over http(s) — e.g. GitHub Pages — not a file:// URL.</div>');
-    $('footer').textContent = 'crack-js not loaded.';
-    return;
+      '<div class="load-err"><b>crack-js failed to load.</b> Make sure <code>dist/crack.js</code> sits next to this page (run <code>npm run build</code>), and serve over http(s) — not file://.</div>');
+    $('footer').textContent='crack-js not loaded.'; return;
   }
+  var HAS_EXTRACT = (typeof C.extract === 'function');
 
-  // ---- boot log / stats ----
-  var gen = C.hashTypes.filter(function(t){return t.generatable;}).length;
-  var fast = C.hashTypes.filter(function(t){return t.fast;}).length;
-  var boot = [
-    ['loading hash registry',   C.hashTypes.length + ' modes'],
-    ['arming generators',       gen + ' online'],
-    ['single-shot cores',       fast + ' ready'],
-    ['backend / dependencies',  '0 — client-side']
-  ];
-  $('stats').innerHTML = boot.map(function(b){
-    return '<div class="bootline"><span class="bl-msg">'+b[0]+'</span><span class="bl-ok">[ '+b[1]+' ]</span></div>';
-  }).join('');
-  $('footer').innerHTML = 'crack-js · '+C.hashTypes.length+' modes · verify · identify · generate · benchmark — 100% client-side · <a href="https://github.com/zzzteph/crack-js">github.com/zzzteph/crack-js</a>';
+  // ---- boot stats ----
+  var genCount = C.hashTypes.filter(function(t){return t.generatable;}).length;
+  var fastCount = C.hashTypes.filter(function(t){return t.fast;}).length;
+  $('stats').innerHTML = [
+    ['loading hash registry', C.hashTypes.length+' modes'],
+    ['arming generators', genCount+' online'],
+    ['file extractors', HAS_EXTRACT ? 'zip · 7z · office · rar · wpa' : 'unavailable'],
+    ['backend / dependencies', '0 — client-side']
+  ].map(function(b){ return '<div class="bootline"><span class="bl-msg">'+b[0]+'</span><span class="bl-ok">[ '+b[1]+' ]</span></div>'; }).join('');
+  $('footer').innerHTML='crack-js · '+C.hashTypes.length+' modes · 100% client-side · <a href="https://github.com/zzzteph/crack-js">github.com/zzzteph/crack-js</a>';
 
   // ---- tabs ----
+  var TABS=['speed','gen','ext','id','brute','wf'];
   function selectTab(which){
-    ['speed','id','gen','crack'].forEach(function(k){
-      var t=$('tab-'+k), p=$('panel-'+k), on=(k===which);
-      t.setAttribute('aria-selected', on?'true':'false');
-      p.classList.toggle('active', on);
+    TABS.forEach(function(k){
+      var t=$('tab-'+k), p=$('panel-'+(k==='speed'?'speed':k)), on=(k===which);
+      if(t){ t.setAttribute('aria-selected', on?'true':'false'); }
+      if(p){ p.classList.toggle('active', on); }
     });
   }
-  var TABS=['speed','id','gen','crack'];
   TABS.forEach(function(k){ $('tab-'+k).addEventListener('click', function(){ selectTab(k); if(history.replaceState) history.replaceState(null,'','#'+k); }); });
   function tabFromHash(){ var h=(location.hash||'').replace('#',''); if(TABS.indexOf(h)>=0) selectTab(h); }
-  window.addEventListener('hashchange', tabFromHash);
-  tabFromHash();
+  window.addEventListener('hashchange', tabFromHash); tabFromHash();
 
-  function escapeHtml(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function fmt(n){ return (typeof n==='number') ? n.toLocaleString('en-US') : String(n); }
+  function fmtBig(n){
+    if(!isFinite(n)) return '∞';
+    if(n<1e6) return Math.round(n).toLocaleString('en-US');
+    if(n<1e9) return (n/1e6).toFixed(1)+'M';
+    if(n<1e12) return (n/1e9).toFixed(1)+'B';
+    if(n<1e15) return (n/1e12).toFixed(1)+'T';
+    return n.toExponential(1);
+  }
+  function fmtEta(sec){
+    if(sec==null || !isFinite(sec)) return '∞';
+    if(sec<1) return '<1s';
+    if(sec<60) return Math.round(sec)+'s';
+    if(sec<3600) return Math.floor(sec/60)+'m '+Math.round(sec%60)+'s';
+    if(sec<86400) return Math.floor(sec/3600)+'h '+Math.floor((sec%3600)/60)+'m';
+    if(sec<86400*365) return Math.floor(sec/86400)+'d '+Math.floor((sec%86400)/3600)+'h';
+    var yr=sec/(86400*365); return yr>1e6 ? '>1M yr' : (yr<1000 ? yr.toFixed(1)+' yr' : Math.round(yr).toLocaleString('en-US')+' yr');
+  }
 
-  // ---- speed benchmark ----
+  // ================= BENCHMARK =================
   var benchRunning=false, benchStop=false;
-  function fmt(n){ return n>=1000 ? n.toLocaleString('en-US') : String(n); }
-
   $('run-bench').addEventListener('click', function(){
     if(benchRunning) return;
-    benchRunning=true; benchStop=false;
-    $('run-bench').disabled=true; $('stop-bench').disabled=false;
+    benchRunning=true; benchStop=false; $('run-bench').disabled=true; $('stop-bench').disabled=false;
     var dur=parseInt($('dur').value,10);
     var list=C.hashTypes.filter(function(t){ return $('fastonly').checked ? t.fast : true; });
-    var results=[];
-    $('prog').classList.add('on'); $('prog').firstChild.style.width='0%';
-    $('speed-tblwrap').style.display='block';
-    $('speed-body').innerHTML='';
+    var results=[]; $('prog').classList.add('on'); $('prog').firstChild.style.width='0%';
+    $('speed-tblwrap').style.display='block'; $('speed-body').innerHTML='';
     var i=0;
     function step(){
       if(benchStop || i>=list.length){ finish(); return; }
-      var t=list[i]; var hps=null;
-      try{ hps=C.measureSpeed(t.mode, dur); }catch(e){ hps=null; }
+      var t=list[i], hps=null; try{ hps=C.measureSpeed(t.mode,dur); }catch(e){ hps=null; }
       if(hps!=null) results.push({mode:t.mode,name:t.name,hps:hps,fast:t.fast});
-      i++;
-      $('prog').firstChild.style.width=(100*i/list.length)+'%';
+      i++; $('prog').firstChild.style.width=(100*i/list.length)+'%';
       $('bench-status').textContent='measuring '+i+' / '+list.length+' · '+t.name+' …';
-      render(results);
-      setTimeout(step,0); // yield so the UI paints between (blocking) measurements
+      renderBench(results); setTimeout(step,0);
     }
     function finish(){
-      benchRunning=false;
-      $('run-bench').disabled=false; $('stop-bench').disabled=true;
-      $('prog').classList.remove('on');
-      $('bench-status').textContent='done — '+results.length+' modes measured ('+dur+' ms each). fastest: '+
-        (results.length?results.slice().sort(function(a,b){return b.hps-a.hps;})[0].name:'—')+'.';
+      benchRunning=false; $('run-bench').disabled=false; $('stop-bench').disabled=true; $('prog').classList.remove('on');
+      $('bench-status').textContent='done — '+results.length+' modes measured. fastest: '+(results.length?results.slice().sort(function(a,b){return b.hps-a.hps;})[0].name:'—')+'.';
     }
     step();
   });
   $('stop-bench').addEventListener('click', function(){ benchStop=true; });
-
-  function render(results){
-    var sorted=results.slice().sort(function(a,b){return b.hps-a.hps;});
-    var max=sorted.length?sorted[0].hps:1;
-    var rows='';
-    for(var r=0;r<sorted.length;r++){
-      var s=sorted[r];
-      var w=Math.max(2, Math.round(100*s.hps/max));
-      rows+='<tr><td class="rank">'+(r+1)+'</td>'+
-        '<td class="mode">'+s.mode+'</td>'+
-        '<td class="name">'+s.name+(s.fast?' <span class="pill fast" title="single-shot: unsalted hash computed in one pass — runs at millions/sec">fast</span>':'')+'</td>'+
-        '<td class="num hps">'+fmt(s.hps)+'</td>'+
-        '<td class="barcell"><div class="bar" style="width:'+w+'%"></div></td></tr>';
-    }
+  function renderBench(results){
+    var sorted=results.slice().sort(function(a,b){return b.hps-a.hps;}), max=sorted.length?sorted[0].hps:1, rows='';
+    for(var r=0;r<sorted.length;r++){ var s=sorted[r], w=Math.max(2,Math.round(100*s.hps/max));
+      rows+='<tr><td class="rank">'+(r+1)+'</td><td class="mode">'+s.mode+'</td><td class="name">'+esc(s.name)+(s.fast?' <span class="pill fast">fast</span>':'')+'</td><td class="num hps">'+fmt(s.hps)+'</td><td class="barcell"><div class="bar" style="width:'+w+'%"></div></td></tr>'; }
     $('speed-body').innerHTML=rows;
   }
 
-  // ---- identify ----
-  function modeOf(name){ var m=C.hashTypes.filter(function(t){return t.name===name;})[0]; return m?m.mode:'?'; }
-  function runIdentify(){
-    var h=$('hashin').value.trim();
-    var out=$('id-results');
-    if(!h){ out.innerHTML='<div class="empty">enter a hash above.</div>'; return; }
-    var names=[];
-    try{ names=C.getPossibleHashTypes(h); }catch(e){ names=[]; }
-    if(!names.length){ out.innerHTML='<div class="empty">no known mode matches that format.</div>'; return; }
-    var html='<div class="hint" style="margin-bottom:10px"><b>'+names.length+'</b> possible '+(names.length===1?'type':'types')+':</div>';
-    names.forEach(function(n){
-      var t=C.hashTypes.filter(function(x){return x.name===n;})[0]||{};
-      html+='<div class="match"><span class="m-mode">-m '+modeOf(n)+'</span>'+
-        '<span class="m-name">'+n+'</span>'+
-        '<span class="m-flags">'+(t.fast?'<span class="pill fast" title="single-shot: unsalted hash computed in one pass — runs at millions/sec">fast</span>':'')+
-        (t.generatable?'<span class="pill">generatable</span>':'')+'</span></div>';
-    });
-    out.innerHTML=html;
-  }
-  $('run-id').addEventListener('click', runIdentify);
-  $('clear-id').addEventListener('click', function(){ $('hashin').value=''; $('id-results').innerHTML=''; $('hashin').focus(); });
-  $('hashin').addEventListener('keydown', function(e){ if((e.ctrlKey||e.metaKey)&&e.key==='Enter') runIdentify(); });
-  Array.prototype.forEach.call(document.querySelectorAll('.examples code'), function(c){
-    c.addEventListener('click', function(){ $('hashin').value=c.getAttribute('data-h'); runIdentify(); });
-  });
-
-  // ---- generate ----
-  // mode selector: an "all" option + every generatable mode (default md5)
+  // ================= GENERATE =================
   (function(){
     var opts='<option value="all">all generatable (slower)</option>';
     C.hashTypes.slice().filter(function(t){return t.generatable;}).sort(function(a,b){return a.mode-b.mode;}).forEach(function(t){
-      opts+='<option value="'+t.mode+'"'+(t.mode===0?' selected':'')+'>'+escapeHtml(t.name)+'  (-m '+t.mode+')</option>';
+      opts+='<option value="'+t.mode+'"'+(t.mode===0?' selected':'')+'>'+esc(t.name)+'  (-m '+t.mode+')</option>';
     });
     $('gen-mode').innerHTML=opts;
   })();
-
   var genRunning=false, genAll=[];
   $('run-gen').addEventListener('click', function(){
     if(genRunning) return;
-    var pw=$('pwin').value;
-    var sel=$('gen-mode').value;
-    if(sel!=='all'){                              // single mode — instant, no heavy loop
-      var sm=parseInt(sel,10), sh=null;
-      try{ sh=C.generateHash(sm, pw); }catch(e){ sh=null; }
-      genAll = (sh!=null) ? [{mode:sm, name:C.modeInfo[sm]||'?', hash:String(sh)}] : [];
+    var pw=$('pwin').value, sel=$('gen-mode').value;
+    if(sel!=='all'){
+      var sm=parseInt(sel,10), sh=null; try{ sh=C.generateHash(sm,pw); }catch(e){ sh=null; }
+      genAll=(sh!=null)?[{mode:sm,name:C.modeInfo[sm]||'?',hash:String(sh)}]:[];
       $('gen-tblwrap').style.display='block'; renderGen();
-      $('gen-status').textContent = (sh!=null)
-        ? ('generated -m '+sm+' ('+(C.modeInfo[sm]||'?')+') for "'+pw+'" — click the hash to copy.')
-        : ('-m '+sm+' cannot generate for "'+pw+'" (it needs a specific input length).');
+      $('gen-status').textContent=(sh!=null)?('generated -m '+sm+' for "'+pw+'" — click to copy.'):('-m '+sm+' cannot generate for "'+pw+'" (needs a specific input length).');
       return;
     }
     var modes=C.generatableModes.slice().sort(function(a,b){return a-b;});
-    genRunning=true; $('run-gen').disabled=true; genAll=[];
-    $('gprog').classList.add('on'); $('gprog').firstChild.style.width='0%';
-    $('gen-tblwrap').style.display='block'; $('gen-body').innerHTML='';
-    var i=0;
+    genRunning=true; $('run-gen').disabled=true; genAll=[]; $('gprog').classList.add('on'); $('gprog').firstChild.style.width='0%';
+    $('gen-tblwrap').style.display='block'; $('gen-body').innerHTML=''; var i=0;
     function step(){
-      if(i>=modes.length){
-        genRunning=false; $('run-gen').disabled=false; $('gprog').classList.remove('on'); renderGen();
-        $('gen-status').textContent=genAll.length+' hashes generated for "'+pw+'". modes needing a specific input length are skipped.';
-        return;
-      }
-      var m=modes[i], h=null;
-      try{ h=C.generateHash(m, pw); }catch(e){ h=null; }
-      if(h!=null) genAll.push({mode:m, name:C.modeInfo[m]||'?', hash:String(h)});
-      i++;
-      if(i%15===0 || i===modes.length){
-        $('gprog').firstChild.style.width=(100*i/modes.length)+'%';
-        $('gen-status').textContent='generating '+i+' / '+modes.length+' …';
-        renderGen();
-      }
-      setTimeout(step,0);
+      if(i>=modes.length){ genRunning=false; $('run-gen').disabled=false; $('gprog').classList.remove('on'); renderGen(); $('gen-status').textContent=genAll.length+' hashes generated for "'+pw+'".'; return; }
+      var m=modes[i], h=null; try{ h=C.generateHash(m,pw); }catch(e){ h=null; }
+      if(h!=null) genAll.push({mode:m,name:C.modeInfo[m]||'?',hash:String(h)});
+      i++; if(i%15===0||i===modes.length){ $('gprog').firstChild.style.width=(100*i/modes.length)+'%'; renderGen(); } setTimeout(step,0);
     }
     step();
   });
   function renderGen(){
     var f=$('filtergen').value.trim().toLowerCase(), rows='';
-    genAll.forEach(function(g){
-      if(f && g.name.indexOf(f)<0 && String(g.mode).indexOf(f)<0) return;
-      rows+='<tr><td class="mode">'+g.mode+'</td><td class="name">'+g.name+'</td><td class="hash">'+escapeHtml(g.hash)+'</td></tr>';
-    });
+    genAll.forEach(function(g){ if(f && g.name.indexOf(f)<0 && String(g.mode).indexOf(f)<0) return;
+      rows+='<tr><td class="mode">'+g.mode+'</td><td class="name">'+esc(g.name)+'</td><td class="hash">'+esc(g.hash)+'</td></tr>'; });
     $('gen-body').innerHTML=rows;
   }
   $('filtergen').addEventListener('input', renderGen);
   $('pwin').addEventListener('keydown', function(e){ if(e.key==='Enter') $('run-gen').click(); });
-  $('gen-body').addEventListener('click', function(e){
-    var td=e.target; while(td && td.nodeName!=='TD'){ td=td.parentNode; }
-    if(!td || !/\bhash\b/.test(td.className)) return;
-    var txt=td.textContent; if(txt==='copied ✓') return;
-    try{ if(navigator.clipboard) navigator.clipboard.writeText(txt); }catch(_){}
-    td.textContent='copied ✓'; setTimeout(function(){ td.textContent=txt; }, 800);
+  $('gen-body').addEventListener('click', copyCellHandler);
+  function copyCellHandler(e){ var td=e.target; while(td && td.nodeName!=='TD'){ td=td.parentNode; } if(!td||!/\bhash\b/.test(td.className)) return;
+    var txt=td.textContent; if(txt==='copied ✓') return; try{ if(navigator.clipboard) navigator.clipboard.writeText(txt); }catch(_){}
+    td.textContent='copied ✓'; setTimeout(function(){ td.textContent=txt; },800); }
+
+  // ================= IDENTIFY =================
+  function modeOf(name){ var m=C.hashTypes.filter(function(t){return t.name===name;})[0]; return m?m.mode:'?'; }
+  function runIdentify(){
+    var h=$('hashin').value.trim(), out=$('id-results');
+    if(!h){ out.innerHTML='<div class="empty">enter a hash above.</div>'; return; }
+    var names=[]; try{ names=C.getPossibleHashTypes(h); }catch(e){ names=[]; }
+    if(!names.length){ out.innerHTML='<div class="empty">no known mode matches that format.</div>'; return; }
+    var html='<div class="hint" style="margin-bottom:10px"><b>'+names.length+'</b> possible '+(names.length===1?'type':'types')+':</div>';
+    names.forEach(function(n){ var t=C.hashTypes.filter(function(x){return x.name===n;})[0]||{};
+      html+='<div class="match"><span class="m-mode">-m '+modeOf(n)+'</span><span class="m-name">'+esc(n)+'</span><span class="m-flags">'+(t.fast?'<span class="pill fast">fast</span>':'')+(t.generatable?'<span class="pill">generatable</span>':'')+'</span></div>'; });
+    out.innerHTML=html;
+  }
+  $('run-id').addEventListener('click', runIdentify);
+  $('clear-id').addEventListener('click', function(){ $('hashin').value=''; $('id-results').innerHTML=''; $('hashin').focus(); });
+  $('hashin').addEventListener('keydown', function(e){ if((e.ctrlKey||e.metaKey)&&e.key==='Enter') runIdentify(); });
+  Array.prototype.forEach.call(document.querySelectorAll('.examples code'), function(c){ c.addEventListener('click', function(){ $('hashin').value=c.getAttribute('data-h'); runIdentify(); }); });
+
+  // ================= shared: read a file, extract() (bytes then text) =================
+  function extractFile(file, ok, fail){
+    var rd=new FileReader();
+    rd.onload=function(){
+      var res=null, err=null;
+      try{ res=C.extract(new Uint8Array(rd.result)); }
+      catch(e1){
+        try{ res=C.extract(new TextDecoder('utf-8').decode(new Uint8Array(rd.result))); }
+        catch(e2){ err=e1.message||'unrecognized file'; }
+      }
+      if(res && res.length){ res.forEach(function(r){ r.src=file.name; }); ok(res); } else fail(err||'nothing extractable found');
+    };
+    rd.onerror=function(){ fail('could not read file'); };
+    rd.readAsArrayBuffer(file);
+  }
+
+  // ================= EXTRACT tab =================
+  var lastExtract=[];
+  function renderExtract(rows){
+    lastExtract=rows.filter(function(r){return r.hash;});
+    if(!rows.length){ $('ext-tblwrap').style.display='none'; $('ext-actions').style.display='none'; return; }
+    var html='';
+    rows.forEach(function(r,i){
+      html+='<tr><td class="name">'+esc(r.type)+'</td><td class="mode">'+(r.mode||'?')+'</td><td class="name">'+esc(r.name||'')+'</td><td class="hint">'+esc(r.file||r.src||'')+'</td>'+
+        '<td class="hash">'+(r.hash?esc(r.hash):('<span class="pill warnp">'+esc(r.note||'no hash')+'</span>'))+'</td>'+
+        '<td>'+(r.hash?'<button class="btn ghost sm" data-ex="'+i+'">→ brute</button>':'')+'</td></tr>';
+    });
+    $('ext-body').innerHTML=html; $('ext-tblwrap').style.display='block';
+    $('ext-actions').style.display=lastExtract.length?'flex':'none';
+    Array.prototype.forEach.call($('ext-body').querySelectorAll('[data-ex]'), function(b){
+      b.addEventListener('click', function(){ var r=rows[parseInt(b.getAttribute('data-ex'),10)]; sendToBrute([r]); });
+    });
+  }
+  $('ext-body').addEventListener('click', copyCellHandler);
+  function handleExtractFiles(files){
+    if(!HAS_EXTRACT){ $('ext-status').textContent='this build has no extract() — run npm run build.'; return; }
+    var all=[], pending=files.length, any=false;
+    $('ext-status').textContent='extracting '+files.length+' file'+(files.length>1?'s':'')+'…';
+    Array.prototype.forEach.call(files, function(f){
+      extractFile(f, function(res){ all=all.concat(res); any=true; if(--pending===0) finish(); },
+                     function(err){ all.push({type:'?',mode:'',name:f.name,note:err}); if(--pending===0) finish(); });
+    });
+    function finish(){ renderExtract(all);
+      var n=all.filter(function(r){return r.hash;}).length;
+      $('ext-status').textContent = n ? ('extracted '+n+' hash'+(n>1?'es':'')+' — click a hash to copy, or send to brute.') : 'no extractable hash found in those files.';
+    }
+  }
+  wireDrop('ext-drop','ext-file', handleExtractFiles);
+  $('ext-tobrute').addEventListener('click', function(){ sendToBrute(lastExtract); });
+  $('ext-copy').addEventListener('click', function(){
+    var txt=lastExtract.map(function(r){return r.hash;}).join('\n'); try{ if(navigator.clipboard) navigator.clipboard.writeText(txt); }catch(_){}
+    $('ext-status').textContent='copied '+lastExtract.length+' hash line'+(lastExtract.length>1?'s':'')+' to clipboard.';
   });
-
-  // ---- crack (dictionary-attack task manager) ----
-  // mode selector: auto-detect + every hash type
-  (function(){
-    var opts='';
-    C.hashTypes.slice().sort(function(a,b){return a.mode-b.mode;}).forEach(function(t){
-      opts+='<option value="'+t.mode+'">'+escapeHtml(t.name)+'  (-m '+t.mode+')</option>';
-    });
-    $('crack-mode').insertAdjacentHTML('beforeend', opts);
-  })();
-
-  // persistent potfile — recovered HASH:PASSWORD pairs survive reloads
-  var POT_KEY='crackjs.pot.v1', POT={};
-  try{ POT=JSON.parse(localStorage.getItem(POT_KEY))||{}; }catch(e){ POT={}; }
-  function savePot(){ try{ localStorage.setItem(POT_KEY, JSON.stringify(POT)); }catch(e){} }
-  function potAdd(hash, password){ if(!(hash in POT)){ POT[hash]=password; savePot(); renderPot(); } }
-  function potPairs(){ return Object.keys(POT).map(function(h){ return h+':'+POT[h]; }); }
-  function potDownload(){
-    var blob=new Blob([potPairs().join('\n')+'\n'],{type:'text/plain'}), url=URL.createObjectURL(blob);
-    var a=document.createElement('a'); a.href=url; a.download='cracked-all.txt';
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); },1500);
+  function sendToBrute(rows){
+    var hs=rows.filter(function(r){return r.hash;});
+    if(!hs.length) return;
+    $('brute-hashes').value=hs.map(function(r){return r.hash;}).join('\n');
+    var modes=hs.map(function(r){return r.mode;}).filter(function(m){return m;});
+    if(modes.length && modes.every(function(m){return m===modes[0];})){ setBruteMode(modes[0]); }
+    selectTab('brute'); if(history.replaceState) history.replaceState(null,'','#brute');
+    $('brute-status').textContent='loaded '+hs.length+' extracted hash'+(hs.length>1?'es':'')+' — pick an attack and hit crack.';
   }
-  function renderPot(){
-    var el=$('crack-pot'), n=Object.keys(POT).length;
-    if(!n){ el.innerHTML=''; return; }
-    el.innerHTML='<div class="pot-head">recovered <b>'+n+'</b> · saved in this browser'+
-      '<span class="pot-btns"><button class="btn sm" id="pot-dl">download all</button>'+
-      '<button class="btn ghost sm" id="pot-clear">clear</button></span></div>'+
-      '<div class="pot-list">'+ potPairs().map(function(p){ return escapeHtml(p); }).join('<br>') +'</div>';
-    $('pot-dl').addEventListener('click', potDownload);
-    $('pot-clear').addEventListener('click', function(){
-      if(confirm('Clear all '+Object.keys(POT).length+' saved results from this browser?')){ POT={}; savePot(); renderPot(); }
-    });
-  }
-  renderPot();
 
+  // generic click/drag drop wiring
+  function wireDrop(zoneId, inputId, onFiles){
+    var z=$(zoneId), inp=$(inputId);
+    z.addEventListener('click', function(){ inp.click(); });
+    inp.addEventListener('change', function(){ if(this.files.length) onFiles(this.files); this.value=''; });
+    ['dragenter','dragover'].forEach(function(ev){ z.addEventListener(ev, function(e){ e.preventDefault(); z.classList.add('over'); }); });
+    ['dragleave','drop'].forEach(function(ev){ z.addEventListener(ev, function(e){ e.preventDefault(); z.classList.remove('over'); }); });
+    z.addEventListener('drop', function(e){ if(e.dataTransfer && e.dataTransfer.files.length) onFiles(e.dataTransfer.files); });
+  }
+
+  // ================= wordlists (shared by brute + workflows) =================
   var WORDLISTS=[], wlSeq=0;
-  function wlById(id){ for(var i=0;i<WORDLISTS.length;i++) if(WORDLISTS[i].id===id) return WORDLISTS[i]; return null; }
   function addWordlist(name, words, builtin, checked){
     var seen=Object.create(null), clean=[];
     for(var i=0;i<words.length;i++){ var w=words[i]; if(w!=null && w!=='' && seen[w]===undefined){ seen[w]=1; clean.push(w); } }
     WORDLISTS.push({id:'wl'+(wlSeq++), name:name, words:clean, builtin:!!builtin, checked:checked!==false});
-    renderWordlists();
+    renderWordlists(); renderWfStepsIfEditing();
   }
+  function wlByName(nm){ return WORDLISTS.filter(function(w){return w.name===nm;})[0]; }
   function renderWordlists(){
-    $('crack-wordlists').innerHTML=WORDLISTS.map(function(wl){
-      return '<label class="wl-item"><input type="checkbox" data-wl="'+wl.id+'"'+(wl.checked?' checked':'')+'>'+
-        escapeHtml(wl.name)+' <span class="wl-count">'+wl.words.length.toLocaleString('en-US')+'</span></label>';
+    $('brute-wordlists').innerHTML=WORDLISTS.map(function(wl){
+      return '<label class="wl-item"><input type="checkbox" data-wl="'+wl.id+'"'+(wl.checked?' checked':'')+'>'+esc(wl.name)+' <span class="wl-count">'+wl.words.length.toLocaleString('en-US')+'</span></label>';
     }).join('');
-    Array.prototype.forEach.call($('crack-wordlists').querySelectorAll('input[data-wl]'), function(cb){
-      cb.addEventListener('change', function(){ var wl=wlById(cb.getAttribute('data-wl')); if(wl) wl.checked=cb.checked; });
+    Array.prototype.forEach.call($('brute-wordlists').querySelectorAll('input[data-wl]'), function(cb){
+      cb.addEventListener('change', function(){ var wl=WORDLISTS.filter(function(w){return w.id===cb.getAttribute('data-wl');})[0]; if(wl) wl.checked=cb.checked; });
     });
   }
-  function selectedWords(){ var out=[]; WORDLISTS.forEach(function(wl){ if(wl.checked) out=out.concat(wl.words); }); return out; }
+  function selectedWords(){ var out=[], seen=Object.create(null); WORDLISTS.forEach(function(wl){ if(wl.checked) wl.words.forEach(function(w){ if(seen[w]===undefined){seen[w]=1;out.push(w);} }); }); return out; }
+  function wordsFromNames(names){ var out=[], seen=Object.create(null); (names||[]).forEach(function(nm){ var wl=wlByName(nm); if(wl) wl.words.forEach(function(w){ if(seen[w]===undefined){seen[w]=1;out.push(w);} }); }); return out; }
 
-  var COMMON=("password 123456 123456789 12345678 12345 1234 1234567 1234567890 12 123 0000 1111 2222 4321 qwerty abc123 password1 "+
-    "password123 iloveyou admin administrator root toor guest test test123 welcome welcome1 login "+
-    "passw0rd p@ssw0rd letmein monkey dragon sunshine princess football baseball soccer hockey shadow "+
-    "master superman batman trustno1 hunter hashcat crackme 000000 111111 121212 123123 654321 666666 "+
-    "696969 777777 888888 999999 555555 zxcvbn qwertyuiop 1q2w3e4r 1qaz2wsx qazwsx qwe123 asdf asdfgh "+
-    "asdfghjkl zxcvbnm ninja azerty michael jessica jennifer michelle daniel charlie robert thomas "+
-    "joshua andrew joseph william matthew hannah nicole ashley amanda summer winter spring autumn "+
-    "january february freedom whatever computer internet samsung google apple starwars pokemon nirvana "+
-    "metallica slipknot spongebob liverpool arsenal chelsea barcelona jordan harley ranger buster tigger "+
-    "george pepper cheese ginger maggie jasmine taylor jesus hello hello123 helloworld changeme secret "+
-    "access money mustang camaro corvette diamond ferrari porsche silver golden angel love lovely sexy "+
-    "chocolate cookie flower orange purple yellow rainbow monster dexter oliver bailey rocky lucky bandit "+
-    "smokey midnight scooter snoopy garfield bella lucy max coffee peanut cowboy eagle falcon phoenix "+
-    "viking samurai warrior wizard killer eminem blink182 greenday 2020 2021 2022 2023 2024 2025 "+
-    "summer2021 winter2022 spring2023 admin1 admin123 root123 letmein1 monkey123 dragon123 football1 "+
-    "baseball1 shadow1 qwerty123 abc123456 iloveyou1 princess1 superman1 batman123").split(/\s+/);
+  var COMMON=("password 123456 123456789 12345678 12345 1234 1234567 1234567890 12 123 0000 1111 qwerty abc123 password1 "+
+    "password123 iloveyou admin administrator root toor guest test test123 welcome welcome1 login passw0rd p@ssw0rd letmein "+
+    "monkey dragon sunshine princess football baseball shadow master superman batman trustno1 hunter hashcat crackme hashcat! "+
+    "000000 111111 121212 123123 654321 666666 777777 888888 999999 zxcvbn qwertyuiop 1q2w3e4r 1qaz2wsx qazwsx qwe123 asdf "+
+    "asdfgh asdfghjkl zxcvbnm ninja azerty michael jessica jennifer daniel charlie robert thomas joshua william matthew hannah "+
+    "summer winter spring autumn freedom whatever computer internet google apple starwars pokemon metallica liverpool arsenal "+
+    "chelsea jordan george pepper cheese ginger maggie jasmine taylor jesus hello helloworld changeme secret access money mustang "+
+    "diamond ferrari silver golden angel love sexy chocolate cookie flower orange purple yellow rainbow monster oliver bella lucy "+
+    "max coffee cowboy eagle falcon phoenix warrior wizard killer eminem 2020 2021 2022 2023 2024 2025 admin1 admin123 root123 "+
+    "letmein1 monkey123 dragon123 football1 shadow1 qwerty123 iloveyou1 princess1 superman1").split(/\s+/);
   addWordlist('common passwords', COMMON, true, true);
   var PINS=[]; for(var pi=0; pi<10000; pi++){ PINS.push(('000'+pi).slice(-4)); }
   addWordlist('4-digit PINs (0000–9999)', PINS, true, false);
 
-  $('crack-upload').addEventListener('click', function(){ $('crack-file').click(); });
-  $('crack-file').addEventListener('change', function(){
-    Array.prototype.forEach.call(this.files, function(f){
-      var rd=new FileReader();
-      rd.onload=function(){ addWordlist(f.name, String(rd.result).split(/\r?\n/), false, true); };
-      rd.readAsText(f);
-    });
+  $('brute-upload').addEventListener('click', function(){ $('wl-file').click(); });
+  $('wl-file').addEventListener('change', function(){
+    Array.prototype.forEach.call(this.files, function(f){ var rd=new FileReader(); rd.onload=function(){ addWordlist(f.name, String(rd.result).split(/\r?\n/), false, true); }; rd.readAsText(f); });
     this.value='';
   });
 
-  // The cracking worker is built INLINE (as a Blob) so its message protocol is
-  // always in sync with this page — there is no separate worker file to get
-  // stale-cached and mismatch. It importScripts() the bundle by absolute URL.
+  // ================= attack config =================
+  $('brute-mode').insertAdjacentHTML('beforeend', C.hashTypes.slice().sort(function(a,b){return a.mode-b.mode;}).map(function(t){ return '<option value="'+t.mode+'">'+esc(t.name)+'  (-m '+t.mode+')</option>'; }).join(''));
+  function setBruteMode(m){ var opt=$('brute-mode').querySelector('option[value="'+m+'"]'); $('brute-mode').value = opt ? String(m) : 'auto'; }
+
+  var RULE_PRESETS={
+    best:[':','l','u','c','r','d','$1','$1$2$3','$!','sa@','se3','so0'],
+    digit:['$0','$1','$2','$3','$4','$5','$6','$7','$8','$9'],
+    digit2:(function(){var a=[];for(var i=0;i<100;i++){var s=('0'+i).slice(-2);a.push('$'+s.charAt(0)+'$'+s.charAt(1));}return a;})(),
+    capdigit:(function(){var a=[];for(var i=0;i<10;i++)a.push('c$'+i);return a;})(),
+    leet:['sa@','se3','si1','so0','ss$'],
+    caserev:['l','u','c','t','r','d','f']
+  };
+  $('rule-preset').addEventListener('change', function(){ var p=RULE_PRESETS[this.value]; if(p){ $('brute-rules').value=p.join('\n'); } this.value=''; });
+
+  function showCfg(){
+    var t=$('attack-type').value;
+    $('cfg-wl').classList.toggle('hidden', !(t==='dict'||t==='rules'));
+    $('cfg-rules').classList.toggle('hidden', t!=='rules');
+    $('cfg-brute').classList.toggle('hidden', t!=='brute');
+    $('cfg-workflow').classList.toggle('hidden', t!=='workflow');
+    if(t==='workflow') refreshWfSelect();
+    if(t==='brute') updateEst();
+  }
+  $('attack-type').addEventListener('change', showCfg);
+
+  var CS={l:'abcdefghijklmnopqrstuvwxyz', u:'ABCDEFGHIJKLMNOPQRSTUVWXYZ', d:'0123456789', s:'!@#$%^&*()-_=+[]{};:,.?/'};
+  function buildCharset(){
+    var cs=''; Array.prototype.forEach.call($('charset-toggles').querySelectorAll('input[data-cs]'), function(cb){ if(cb.checked) cs+=CS[cb.getAttribute('data-cs')]; });
+    cs+=$('cs-custom').value;
+    var seen=Object.create(null), out=''; for(var i=0;i<cs.length;i++){ if(seen[cs[i]]===undefined){ seen[cs[i]]=1; out+=cs[i]; } } return out;
+  }
+  function bruteTotal(cs, mn, mx){ var n=cs.length, tot=0; for(var L=mn;L<=mx;L++) tot+=Math.pow(n,L); return tot; }
+  function updateEst(){
+    var cs=buildCharset(), mn=parseInt($('bf-min').value,10)||1, mx=parseInt($('bf-max').value,10)||1; if(mx<mn) mx=mn;
+    var tot=bruteTotal(cs,mn,mx);
+    $('bf-est').innerHTML = cs.length ? ('charset <b>'+cs.length+'</b> chars · search space <b>'+fmtBig(tot)+'</b> candidates') : 'pick at least one charset.';
+  }
+  Array.prototype.forEach.call($('charset-toggles').querySelectorAll('input'), function(cb){ cb.addEventListener('change', updateEst); });
+  $('cs-custom').addEventListener('input', updateEst);
+  $('bf-min').addEventListener('input', updateEst); $('bf-max').addEventListener('input', updateEst);
+
+  function parseRules(txt){ return String(txt||'').split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){return s && s.charAt(0)!=='#'; }); }
+  showCfg();
+
+  // ================= potfile =================
+  var POT_KEY='crackjs.pot.v1', POT={};
+  try{ POT=JSON.parse(localStorage.getItem(POT_KEY))||{}; }catch(e){ POT={}; }
+  function savePot(){ try{ localStorage.setItem(POT_KEY, JSON.stringify(POT)); }catch(e){} }
+  function potAdd(h,p){ if(!(h in POT)){ POT[h]=p; savePot(); renderPot(); } }
+  function potPairs(){ return Object.keys(POT).map(function(h){ return h+':'+POT[h]; }); }
+  function renderPot(){
+    var el=$('brute-pot'), n=Object.keys(POT).length; if(!n){ el.innerHTML=''; return; }
+    el.innerHTML='<div class="pot-head">recovered <b>'+n+'</b> · saved in this browser<span class="pot-btns"><button class="btn sm" id="pot-dl">download all</button><button class="btn ghost sm" id="pot-clear">clear</button></span></div><div class="pot-list">'+potPairs().map(esc).join('<br>')+'</div>';
+    $('pot-dl').addEventListener('click', function(){ dl(potPairs().join('\n')+'\n','cracked-all.txt'); });
+    $('pot-clear').addEventListener('click', function(){ if(confirm('Clear all '+Object.keys(POT).length+' saved results?')){ POT={}; savePot(); renderPot(); } });
+  }
+  function dl(text,name){ var b=new Blob([text],{type:'text/plain'}), u=URL.createObjectURL(b), a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },1500); }
+  renderPot();
+
+  // ================= worker (dict + rules + bruteforce, multi-step) =================
   function crackWorkerBody(){
-    var C = self.crack;
-    self.onmessage = function(e){
-      if(!C || typeof C.verifyHash !== 'function'){ self.postMessage({type:'error', message:'crack.js failed to load in worker'}); return; }
-      var d = e.data || {}, words = d.words || [], remaining = (d.items || []).slice();
-      var total = words.length, startCount = remaining.length, tried = 0, ops = 0, t0 = Date.now(), last = 0;
-      for(var i=0;i<words.length;i++){
-        var w = words[i];
-        for(var j=remaining.length-1;j>=0;j--){
-          var it = remaining[j], hitType = null;
-          for(var k=0;k<it.types.length;k++){ ops++; try{ if(C.verifyHash(w, it.hash, it.types[k])){ hitType = it.types[k]; break; } }catch(_){} }
-          if(hitType!==null){ self.postMessage({type:'hit', hash:it.hash, password:w, mode:hitType}); remaining.splice(j,1); }
-        }
-        tried++;
-        var now = Date.now();
-        if(now-last>100 || i===words.length-1){ var secs=(now-t0)/1000; self.postMessage({type:'progress', tried:tried, total:total, hps:secs>0?Math.round(ops/secs):ops, cracked:startCount-remaining.length}); last = now; }
-        if(!remaining.length) break;
+    var C=self.crack, HR=self.hashcatRules;
+    // rule mangling = the full hashcat engine, loaded page-side via dist/hashcat-rules.js  [zzzteph/hashcat-rules-js]
+    function stepTotal(st){
+      if(st.kind==='dict') return st.words.length;
+      if(st.kind==='rules') return st.words.length*st.rules.length;
+      if(st.kind==='brute'){ var n=st.charset.length,t=0; for(var L=st.min;L<=st.max;L++) t+=Math.pow(n,L); return t; }
+      return 0;
+    }
+    self.onmessage=function(e){
+      if(!C||typeof C.verifyHash!=='function'){ self.postMessage({type:'error',message:'crack.js failed to load in worker'}); return; }
+      var d=e.data||{}, items=(d.items||[]).slice(), steps=d.steps||[];
+      var startCount=items.length, grand=0, gi; for(gi=0;gi<steps.length;gi++) grand+=stepTotal(steps[gi]);
+      var t0=Date.now(), ops=0, done=0, last=0, curStep=0, stepLabel='';
+      function report(force){
+        var now=Date.now(), secs=(now-t0)/1000;
+        if(!force && now-last<140) return; last=now;
+        var rate=secs>0?done/secs:0, eta=(rate>0 && isFinite(grand))?((grand-done)/rate):null;
+        self.postMessage({type:'progress', tried:done, total:grand, hps:secs>0?Math.round(ops/secs):ops, eta:eta, cracked:startCount-items.length, step:curStep+1, steps:steps.length, stepLabel:stepLabel});
       }
-      self.postMessage({type:'done', tried:tried, total:total, cracked:startCount-remaining.length});
+      function tryCand(w){
+        for(var j=items.length-1;j>=0;j--){ var it=items[j], hit=null;
+          for(var k=0;k<it.types.length;k++){ ops++; try{ if(C.verifyHash(w,it.hash,it.types[k])){ hit=it.types[k]; break; } }catch(_){}}
+          if(hit!==null){ self.postMessage({type:'hit',hash:it.hash,password:w,mode:hit}); items.splice(j,1); }
+        }
+        done++; report(false);
+        return items.length>0;
+      }
+      for(var si=0; si<steps.length && items.length; si++){
+        var st=steps[si]; curStep=si;
+        stepLabel=st.kind==='dict'?('wordlist ('+st.words.length.toLocaleString('en-US')+')'):st.kind==='rules'?('rules '+st.rules.length+'× '+st.words.length.toLocaleString('en-US')):('bruteforce '+st.charset.length+'^'+st.min+'‑'+st.max);
+        if(st.kind==='dict'){ for(var a=0;a<st.words.length;a++){ if(!tryCand(st.words[a])) break; } }
+        else if(st.kind==='rules'){ if(!HR){ self.postMessage({type:'error',message:'hashcat-rules-js not loaded (dist/hashcat-rules.js)'}); return; } outer: for(var b=0;b<st.words.length;b++){ for(var r=0;r<st.rules.length;r++){ var cand=HR.applyRule(st.words[b], st.rules[r]); if(cand===false){ done++; continue; } if(!tryCand(cand)) break outer; } } }
+        else if(st.kind==='brute'){ var cs=st.charset.split('');
+          for(var L=st.min; L<=st.max && items.length; L++){ var idx=[]; for(var q=0;q<L;q++) idx[q]=0;
+            while(true){ var cand=''; for(var p=0;p<L;p++) cand+=cs[idx[p]]; if(!tryCand(cand)) break;
+              var pos=L-1; while(pos>=0){ idx[pos]++; if(idx[pos]<cs.length) break; idx[pos]=0; pos--; } if(pos<0) break; }
+          }
+        }
+        if(!items.length) break;
+      }
+      report(true);
+      self.postMessage({type:'done', tried:done, cracked:startCount-items.length});
     };
   }
-  var crackWorkerUrl = null;
-  try{
-    var _crackUrl = new URL('dist/crack.js', location.href).href;
-    var _src = 'importScripts(' + JSON.stringify(_crackUrl) + ');(' + crackWorkerBody.toString() + ')();';
-    crackWorkerUrl = URL.createObjectURL(new Blob([_src], {type:'application/javascript'}));
-  }catch(e){}
+  var workerUrl=null;
+  try{ var u=new URL('dist/crack.js',location.href).href, u2=new URL('dist/hashcat-rules.js',location.href).href; workerUrl=URL.createObjectURL(new Blob(['importScripts('+JSON.stringify(u)+','+JSON.stringify(u2)+');('+crackWorkerBody.toString()+')();'],{type:'application/javascript'})); }catch(e){}
 
-  var taskSeq=0;
-  $('run-crack').addEventListener('click', function(){
-    var raw=$('crack-hashes').value.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
-    var hashes=raw.filter(function(v,i,a){return a.indexOf(v)===i;});
-    if(!hashes.length){ $('crack-status').textContent='paste at least one hash to crack.'; return; }
-    var words=selectedWords();
-    if(!words.length){ $('crack-status').textContent='select (or upload) at least one wordlist.'; return; }
-
-    var msel=$('crack-mode').value, items, modeName, modeNum, auto=(msel==='auto');
-    if(auto){
-      // give each hash its full list of candidate types; the worker tries them all
-      items=hashes.map(function(h){ var t=[]; try{ t=C.getPossibleHashTypes(h); }catch(e){} return {hash:h, types:t}; });
-      if(!items.some(function(it){ return it.types.length; })){
-        $('crack-status').textContent='could not auto-detect any mode for these hashes — pick one from the list.'; return;
-      }
-      modeName='auto-detect'; modeNum='auto';
-    } else {
-      var mnum=parseInt(msel,10);
-      items=hashes.map(function(h){ return {hash:h, types:[mnum]}; });
-      modeNum=mnum; modeName=C.modeInfo[mnum]||('mode '+mnum);
-    }
-
-    var task={id:++taskSeq, auto:auto, modeName:modeName, modeNum:modeNum, nhash:hashes.length,
-      total:words.length, tried:0, hps:0, cracked:0, hits:[], status:'running', worker:null, el:null};
-    createCard(task);
-    $('crack-status').textContent='task #'+task.id+' launched — '+modeName+' · '+hashes.length+' hash'+(hashes.length>1?'es':'')+' · '+words.length.toLocaleString('en-US')+' candidates.';
-
-    var wk;
-    try{ if(!crackWorkerUrl) throw new Error('workers unavailable'); wk=new Worker(crackWorkerUrl); }
-    catch(err){ task.status='error'; task.err='Web Workers need http(s) — deploy to GitHub Pages'; updateCard(task); return; }
-    task.worker=wk;
-    wk.onmessage=function(ev){ onTaskMsg(task, ev.data); };
-    wk.onerror=function(er){ task.status='error'; task.err=(er&&er.message)||'worker failed to load'; updateCard(task); };
-    wk.postMessage({items:items, words:words});
-  });
-
-  function onTaskMsg(task, m){
-    if(m.type==='hit'){ task.hits.push({hash:m.hash, password:m.password, mode:m.mode}); task.cracked=task.hits.length; potAdd(m.hash, m.password); updateCard(task); }
-    else if(m.type==='progress'){ task.tried=m.tried; task.total=m.total; task.hps=m.hps;
-      if(typeof m.cracked==='number' && m.cracked>task.cracked) task.cracked=m.cracked; updateCard(task); }
-    else if(m.type==='done'){ task.status='done'; task.tried=m.tried;
-      if(task.worker){ task.worker.terminate(); task.worker=null; } updateCard(task);
-      $('crack-status').textContent = task.cracked
-        ? ('task #'+task.id+' done — '+task.cracked+' / '+task.nhash+' cracked.')
-        : ('task #'+task.id+' done — 0 cracked. the password may not be in the selected wordlists — tick the PINs list or upload one (e.g. rockyou).'); }
-    else if(m.type==='error'){ task.status='error'; task.err=m.message||'worker error';
-      if(task.worker){ task.worker.terminate(); task.worker=null; } updateCard(task);
-      $('crack-status').textContent='task #'+task.id+' error — '+task.err+'.'; }
+  // ================= build steps from the chosen attack =================
+  function buildSteps(){
+    var t=$('attack-type').value;
+    if(t==='workflow'){ var wf=WORKFLOWS.filter(function(w){return w.id===$('attack-wf').value;})[0]; if(!wf) return {err:'create a workflow first (workflows tab)'};
+      var steps=resolveWorkflow(wf); if(!steps.length) return {err:'workflow has no runnable steps (wordlists not loaded?)'}; return {steps:steps, label:'workflow: '+wf.name}; }
+    if(t==='dict'||t==='rules'){ var words=selectedWords(); if(!words.length) return {err:'select or upload a wordlist'};
+      if(t==='dict') return {steps:[{kind:'dict',words:words}], label:'wordlist'};
+      var rules=parseRules($('brute-rules').value); if(!rules.length) return {err:'add at least one rule'};
+      return {steps:[{kind:'rules',words:words,rules:rules}], label:'wordlist + '+rules.length+' rules'}; }
+    if(t==='brute'){ var cs=buildCharset(); if(!cs) return {err:'pick a charset'}; var mn=parseInt($('bf-min').value,10)||1, mx=parseInt($('bf-max').value,10)||1; if(mx<mn) mx=mn;
+      return {steps:[{kind:'brute',charset:cs,min:mn,max:mx}], label:'bruteforce'}; }
+    return {err:'unknown attack'};
+  }
+  function resolveWorkflow(wf){
+    return wf.steps.map(function(st){
+      if(st.kind==='brute') return {kind:'brute',charset:st.charset,min:st.min,max:st.max};
+      var words=wordsFromNames(st.wlNames);
+      if(st.kind==='dict') return {kind:'dict',words:words};
+      return {kind:'rules',words:words,rules:parseRules(st.rules)};
+    }).filter(function(s){ return s.kind==='brute' ? s.charset.length : s.words.length; });
   }
 
+  // ================= launch + task cards =================
+  var taskSeq=0;
+  $('run-brute').addEventListener('click', function(){ launchBrute(); });
+  function launchBrute(){
+    var raw=$('brute-hashes').value.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
+    var hashes=raw.filter(function(v,i,a){return a.indexOf(v)===i;});
+    if(!hashes.length){ $('brute-status').textContent='paste a hash, or drop a file to extract one.'; return; }
+    var built=buildSteps(); if(built.err){ $('brute-status').textContent=built.err+'.'; return; }
+    var msel=$('brute-mode').value, auto=(msel==='auto'), items, modeName;
+    if(auto){ items=hashes.map(function(h){ var t=[]; try{ t=C.getPossibleHashTypes(h).map(function(n){ return C.hashTypes.filter(function(x){return x.name===n;})[0].mode; }); }catch(e){} return {hash:h,types:t}; });
+      if(!items.some(function(it){return it.types.length;})){ $('brute-status').textContent='could not auto-detect a mode — pick one from the list.'; return; }
+      modeName='auto-detect';
+    } else { var mn=parseInt(msel,10); items=hashes.map(function(h){ return {hash:h,types:[mn]}; }); modeName='-m '+mn+' '+(C.modeInfo[mn]||''); }
+    var task={id:++taskSeq, modeName:modeName, nhash:hashes.length, attack:built.label, total:0, tried:0, hps:0, eta:null, cracked:0, hits:[], status:'running', step:1, steps:built.steps.length, stepLabel:'', worker:null, el:null};
+    createCard(task);
+    var wk; try{ if(!workerUrl) throw 0; wk=new Worker(workerUrl); }catch(err){ task.status='error'; task.err='Web Workers need http(s) — deploy to GitHub Pages'; updateCard(task); return; }
+    task.worker=wk; wk.onmessage=function(ev){ onMsg(task,ev.data); }; wk.onerror=function(er){ task.status='error'; task.err=(er&&er.message)||'worker failed'; updateCard(task); };
+    wk.postMessage({items:items, steps:built.steps});
+    $('brute-status').textContent='task #'+task.id+' launched — '+built.label+' · '+hashes.length+' hash'+(hashes.length>1?'es':'')+'.';
+  }
+  function onMsg(task,m){
+    if(m.type==='hit'){ task.hits.push(m); task.cracked=task.hits.length; potAdd(m.hash,m.password); updateCard(task); }
+    else if(m.type==='progress'){ task.tried=m.tried; task.total=m.total; task.hps=m.hps; task.eta=m.eta; task.step=m.step; task.steps=m.steps; task.stepLabel=m.stepLabel; if(typeof m.cracked==='number'&&m.cracked>task.cracked) task.cracked=m.cracked; updateCard(task); }
+    else if(m.type==='done'){ task.status='done'; task.tried=m.tried; task.eta=0; if(task.worker){ task.worker.terminate(); task.worker=null; } updateCard(task);
+      $('brute-status').textContent = task.cracked ? ('task #'+task.id+' done — '+task.cracked+' / '+task.nhash+' cracked.') : ('task #'+task.id+' done — 0 cracked. try more wordlists, rules, or a wider bruteforce.'); }
+    else if(m.type==='error'){ task.status='error'; task.err=m.message||'worker error'; if(task.worker){ task.worker.terminate(); task.worker=null; } updateCard(task); }
+  }
   function createCard(task){
     var d=document.createElement('div'); d.className='task'; d.id='task-'+task.id;
-    var modeLabel = task.auto ? 'auto-detect' : ('-m '+escapeHtml(String(task.modeNum))+' '+escapeHtml(String(task.modeName)));
-    d.innerHTML=
-      '<div class="task-head">'+
-        '<span class="task-id">#'+task.id+'</span>'+
-        '<span class="task-mode">'+modeLabel+' · <span class="thash">'+task.nhash+' hash'+(task.nhash>1?'es':'')+'</span></span>'+
-        '<span class="task-status">running</span>'+
-        '<span class="task-btns">'+
-          '<button class="btn ghost sm" data-act="stop">stop</button>'+
-          '<button class="btn sm" data-act="dl" disabled>download</button>'+
-        '</span>'+
-      '</div>'+
+    d.innerHTML='<div class="task-head"><span class="task-id">#'+task.id+'</span>'+
+      '<span class="task-mode">'+esc(task.attack)+' · '+esc(task.modeName)+' · <span class="thash">'+task.nhash+' hash'+(task.nhash>1?'es':'')+'</span></span>'+
+      '<span class="task-status">running</span><span class="task-btns"><button class="btn ghost sm" data-act="stop">stop</button><button class="btn sm" data-act="dl" disabled>download</button></span></div>'+
       '<div class="progress on"><i></i></div>'+
-      '<div class="task-meta">'+
-        '<span>tried <b class="m-tried">0</b> / '+task.total.toLocaleString('en-US')+'</span>'+
-        '<span><b class="m-hps">0</b> H/s</span>'+
-        '<span class="cracked">cracked <b class="m-cracked">0</b> / '+task.nhash+'</span>'+
-      '</div>';
-    $('crack-tasks').insertBefore(d, $('crack-tasks').firstChild);
-    task.el=d;
+      '<div class="task-meta"><span>tried <b class="m-tried">0</b> / <b class="m-total">?</b></span><span><b class="m-hps">0</b> H/s</span><span class="eta">eta <b class="m-eta">…</b></span><span class="cracked">cracked <b class="m-cracked">0</b> / '+task.nhash+'</span></div>'+
+      (task.steps>1?'<div class="task-step">step <b class="m-step">1</b> / '+task.steps+' · <span class="m-steplabel"></span></div>':'');
+    $('brute-tasks').insertBefore(d, $('brute-tasks').firstChild); task.el=d;
     d.querySelector('[data-act="stop"]').addEventListener('click', function(){ stopTask(task); });
     d.querySelector('[data-act="dl"]').addEventListener('click', function(){ downloadTask(task); });
   }
-
   function updateCard(task){
     var d=task.el; if(!d) return;
-    var pct=task.total? Math.round(100*task.tried/task.total):0;
+    var pct=(task.total&&isFinite(task.total))? Math.min(100,100*task.tried/task.total):0;
     d.querySelector('.progress > i').style.width=(task.status==='done'?100:pct)+'%';
-    d.querySelector('.m-tried').textContent=task.tried.toLocaleString('en-US');
-    d.querySelector('.m-hps').textContent=task.hps.toLocaleString('en-US');
+    d.querySelector('.m-tried').textContent=fmt(task.tried);
+    d.querySelector('.m-total').textContent=fmtBig(task.total);
+    d.querySelector('.m-hps').textContent=fmt(task.hps);
+    d.querySelector('.m-eta').textContent=(task.status==='done')?'done':fmtEta(task.eta);
     d.querySelector('.m-cracked').textContent=task.cracked;
+    if(d.querySelector('.m-step')){ d.querySelector('.m-step').textContent=task.step; d.querySelector('.m-steplabel').textContent=task.stepLabel||''; }
     var st=d.querySelector('.task-status');
-    if(task.status==='error'){ st.textContent=task.err||'error'; st.className='task-status err'; }
-    else { st.textContent=task.status; st.className='task-status'; }
+    if(task.status==='error'){ st.textContent=task.err||'error'; st.className='task-status err'; } else { st.textContent=task.status; st.className='task-status'; }
     d.classList.toggle('done', task.status==='done');
     d.querySelector('[data-act="dl"]').disabled=!task.hits.length;
     d.querySelector('[data-act="stop"]').disabled=(task.status!=='running');
   }
-
   function stopTask(task){ if(task.worker){ task.worker.terminate(); task.worker=null; } if(task.status==='running') task.status='stopped'; updateCard(task); }
+  function downloadTask(task){ if(!task.hits.length) return; dl(task.hits.map(function(h){return h.hash+':'+h.password;}).join('\n')+'\n','cracked-task'+task.id+'.txt'); }
 
-  function downloadTask(task){
-    if(!task.hits.length) return;
-    var text=task.hits.map(function(h){ return h.hash+':'+h.password; }).join('\n')+'\n';
-    var blob=new Blob([text],{type:'text/plain'}), url=URL.createObjectURL(blob);
-    var a=document.createElement('a'); a.href=url; a.download='cracked-task'+task.id+'.txt';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+  // brute-tab file drop → auto-extract → set hashes/mode → auto-launch
+  wireDrop('brute-drop','brute-file', function(files){
+    if(!HAS_EXTRACT){ $('brute-status').textContent='this build has no extract().'; return; }
+    var all=[], pending=files.length;
+    $('brute-status').textContent='extracting '+files.length+' file'+(files.length>1?'s':'')+'…';
+    Array.prototype.forEach.call(files, function(f){ extractFile(f, function(res){ all=all.concat(res.filter(function(r){return r.hash;})); if(--pending===0) go(); }, function(){ if(--pending===0) go(); }); });
+    function go(){ if(!all.length){ $('brute-status').textContent='no extractable hash found in that file.'; return; }
+      $('brute-hashes').value=all.map(function(r){return r.hash;}).join('\n');
+      var modes=all.map(function(r){return r.mode;}); if(modes.every(function(m){return m===modes[0];})) setBruteMode(modes[0]);
+      $('brute-status').textContent='extracted '+all.length+' hash'+(all.length>1?'es':'')+' — launching…';
+      launchBrute();
+    }
+  });
+
+  // ================= WORKFLOWS =================
+  var WF_KEY='crackjs.workflows.v1', WORKFLOWS=[];
+  try{ WORKFLOWS=JSON.parse(localStorage.getItem(WF_KEY))||[]; }catch(e){ WORKFLOWS=[]; }
+  function saveWorkflows(){ try{ localStorage.setItem(WF_KEY, JSON.stringify(WORKFLOWS)); }catch(e){} }
+  var editSteps=null, editId=null, wfSeq=Date.now();
+
+  function newStep(kind){ if(kind==='brute') return {kind:'brute',charset:'abcdefghijklmnopqrstuvwxyz0123456789',min:1,max:4}; return {kind:kind,wlNames:['common passwords'],rules:':\nc\n$1'}; }
+  function startEdit(wf){
+    editId = wf?wf.id:null;
+    editSteps = wf ? JSON.parse(JSON.stringify(wf.steps)) : [newStep('dict')];
+    $('wf-name').value = wf?wf.name:'';
+    $('wf-editor').style.display='block'; renderWfSteps();
   }
+  $('wf-new').addEventListener('click', function(){ startEdit(null); });
+  $('wf-cancel').addEventListener('click', function(){ editSteps=null; editId=null; $('wf-editor').style.display='none'; });
+  $('wf-addstep').addEventListener('click', function(){ if(!editSteps) return; editSteps.push(newStep('dict')); renderWfSteps(); });
+  $('wf-save').addEventListener('click', function(){
+    if(!editSteps) return; var nm=$('wf-name').value.trim()||('workflow '+(WORKFLOWS.length+1));
+    if(editId){ var w=WORKFLOWS.filter(function(x){return x.id===editId;})[0]; if(w){ w.name=nm; w.steps=editSteps; } }
+    else { WORKFLOWS.push({id:'wf'+(wfSeq++), name:nm, steps:editSteps}); }
+    saveWorkflows(); editSteps=null; editId=null; $('wf-editor').style.display='none'; renderWfList(); refreshWfSelect();
+  });
+
+  function renderWfStepsIfEditing(){ if(editSteps) renderWfSteps(); }
+  function renderWfSteps(){
+    if(!editSteps) return;
+    var wlOpts=WORDLISTS.map(function(w){return w.name;});
+    $('wf-steps').innerHTML=editSteps.map(function(st,i){
+      var body='';
+      if(st.kind==='dict'||st.kind==='rules'){
+        body+='<div class="wf-mini" style="margin-bottom:8px">wordlists: '+wlOpts.map(function(nm){ var on=(st.wlNames||[]).indexOf(nm)>=0; return '<label class="wl-item"><input type="checkbox" data-wl-name="'+esc(nm)+'" data-i="'+i+'"'+(on?' checked':'')+'>'+esc(nm)+'</label>'; }).join('')+'</div>';
+        if(st.kind==='rules') body+='<textarea data-rules="'+i+'" style="min-height:78px" placeholder="one rule per line">'+esc(st.rules||'')+'</textarea>';
+      } else {
+        body+='<div class="wf-mini"><label class="field">charset <input type="text" data-cs="'+i+'" value="'+esc(st.charset)+'" style="min-width:220px"></label>'+
+          '<label class="field">min <input type="number" data-min="'+i+'" value="'+st.min+'" class="len-in"></label>'+
+          '<label class="field">max <input type="number" data-max="'+i+'" value="'+st.max+'" class="len-in"></label></div>';
+      }
+      return '<div class="wf-step"><div class="wf-step-head"><span class="stepno">step '+(i+1)+'</span>'+
+        '<select data-kind="'+i+'"><option value="dict"'+(st.kind==='dict'?' selected':'')+'>wordlist</option><option value="rules"'+(st.kind==='rules'?' selected':'')+'>wordlist + rules</option><option value="brute"'+(st.kind==='brute'?' selected':'')+'>bruteforce</option></select>'+
+        '<span class="sp"><button class="btn ghost sm" data-up="'+i+'">↑</button><button class="btn ghost sm" data-down="'+i+'">↓</button><button class="btn ghost sm" data-del="'+i+'">✕</button></span></div>'+body+'</div>';
+    }).join('');
+    var S=$('wf-steps');
+    Array.prototype.forEach.call(S.querySelectorAll('[data-kind]'), function(sel){ sel.addEventListener('change', function(){ var i=+sel.getAttribute('data-kind'); editSteps[i]=newStep(sel.value); renderWfSteps(); }); });
+    Array.prototype.forEach.call(S.querySelectorAll('[data-del]'), function(b){ b.addEventListener('click', function(){ editSteps.splice(+b.getAttribute('data-del'),1); if(!editSteps.length) editSteps.push(newStep('dict')); renderWfSteps(); }); });
+    Array.prototype.forEach.call(S.querySelectorAll('[data-up]'), function(b){ b.addEventListener('click', function(){ var i=+b.getAttribute('data-up'); if(i>0){ var t=editSteps[i-1]; editSteps[i-1]=editSteps[i]; editSteps[i]=t; renderWfSteps(); } }); });
+    Array.prototype.forEach.call(S.querySelectorAll('[data-down]'), function(b){ b.addEventListener('click', function(){ var i=+b.getAttribute('data-down'); if(i<editSteps.length-1){ var t=editSteps[i+1]; editSteps[i+1]=editSteps[i]; editSteps[i]=t; renderWfSteps(); } }); });
+    Array.prototype.forEach.call(S.querySelectorAll('[data-wl-name]'), function(cb){ cb.addEventListener('change', function(){ var i=+cb.getAttribute('data-i'), nm=cb.getAttribute('data-wl-name'); var st=editSteps[i]; st.wlNames=st.wlNames||[]; var k=st.wlNames.indexOf(nm); if(cb.checked && k<0) st.wlNames.push(nm); if(!cb.checked && k>=0) st.wlNames.splice(k,1); }); });
+    Array.prototype.forEach.call(S.querySelectorAll('[data-rules]'), function(t){ t.addEventListener('input', function(){ editSteps[+t.getAttribute('data-rules')].rules=t.value; }); });
+    Array.prototype.forEach.call(S.querySelectorAll('[data-cs]'), function(t){ t.addEventListener('input', function(){ editSteps[+t.getAttribute('data-cs')].charset=t.value; }); });
+    Array.prototype.forEach.call(S.querySelectorAll('[data-min]'), function(t){ t.addEventListener('input', function(){ editSteps[+t.getAttribute('data-min')].min=parseInt(t.value,10)||1; }); });
+    Array.prototype.forEach.call(S.querySelectorAll('[data-max]'), function(t){ t.addEventListener('input', function(){ editSteps[+t.getAttribute('data-max')].max=parseInt(t.value,10)||1; }); });
+  }
+  function stepSummary(st){ if(st.kind==='brute') return '<span class="step-tag">brute</span> '+esc(st.charset.length+' chars, len '+st.min+'–'+st.max); return '<span class="step-tag">'+(st.kind==='rules'?'wl+rules':'wordlist')+'</span> '+esc((st.wlNames||[]).join(', ')||'—'); }
+  function renderWfList(){
+    if(!WORKFLOWS.length){ $('wf-list').innerHTML='<div class="empty">no workflows yet — hit [ new workflow ].</div>'; return; }
+    $('wf-list').innerHTML=WORKFLOWS.map(function(wf){
+      return '<div class="wf-card"><div class="wf-name">'+esc(wf.name)+'</div><div class="wf-desc">'+wf.steps.map(function(st,i){return (i+1)+'. '+stepSummary(st);}).join(' &nbsp;→&nbsp; ')+'</div>'+
+        '<div class="wf-actions"><button class="btn sm" data-run="'+wf.id+'">run in brute</button><button class="btn ghost sm" data-edit="'+wf.id+'">edit</button><button class="btn ghost sm" data-delwf="'+wf.id+'">delete</button></div></div>';
+    }).join('');
+    Array.prototype.forEach.call($('wf-list').querySelectorAll('[data-edit]'), function(b){ b.addEventListener('click', function(){ startEdit(WORKFLOWS.filter(function(w){return w.id===b.getAttribute('data-edit');})[0]); }); });
+    Array.prototype.forEach.call($('wf-list').querySelectorAll('[data-delwf]'), function(b){ b.addEventListener('click', function(){ var id=b.getAttribute('data-delwf'); if(confirm('Delete this workflow?')){ WORKFLOWS=WORKFLOWS.filter(function(w){return w.id!==id;}); saveWorkflows(); renderWfList(); refreshWfSelect(); } }); });
+    Array.prototype.forEach.call($('wf-list').querySelectorAll('[data-run]'), function(b){ b.addEventListener('click', function(){ $('attack-type').value='workflow'; showCfg(); $('attack-wf').value=b.getAttribute('data-run'); selectTab('brute'); if(history.replaceState) history.replaceState(null,'','#brute'); }); });
+  }
+  function refreshWfSelect(){
+    $('attack-wf').innerHTML = WORKFLOWS.length ? WORKFLOWS.map(function(w){ return '<option value="'+w.id+'">'+esc(w.name)+'</option>'; }).join('') : '<option value="">— none yet —</option>';
+  }
+  renderWfList(); refreshWfSelect();
 })();
 </script>
 </body>

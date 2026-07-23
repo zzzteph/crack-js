@@ -7,6 +7,8 @@ require('./md4');
 var _dig = require('./digests');
 var _md5s = _dig._md5s, _sha1s = _dig._sha1s, _sha224s = _dig._sha224s, _sha256s = _dig._sha256s, _sha512s = _dig._sha512s;
 var _md5raw = _dig._md5raw, _sha1raw = _dig._sha1raw, _sha256raw = _dig._sha256raw, _sha512raw = _dig._sha512raw;
+var _zip = require('./zip');
+var _7z = require('./sevenzip');
 
 function _md5(s) { return CryptoJS.MD5(CryptoJS.enc.Latin1.parse(s)).toString(); }
 function _sha1(s) { return CryptoJS.SHA1(CryptoJS.enc.Latin1.parse(s)).toString(); }
@@ -436,5 +438,16 @@ var _gcm = require('./gcm'), _wd = require('./walletdata');
 G[25500] = (p, params) => { var salt = _hx2(_dsalt(params, 32)), iv = _hx2(_dsalt({ salt: 'v' + _p(params, 'salt', '') }, 24)); var key = _coins._pbkdf2(CryptoJS.algo.SHA256, String(p), salt, 4096, 32); var r = _gcm._gcmEncrypt(key, iv, _hx2(_wd.P25500)); return '$stellar$' + _b64ofBytes(salt) + '$' + _b64ofBytes(iv) + '$' + _b64ofBytes(r.ct.concat(r.tag)); };
 G[26600] = (p, params) => { var salt = _hx2(_dsalt(params, 64)), iv = _hx2(_dsalt({ salt: 'v' + _p(params, 'salt', '') }, 32)); var key = _coins._pbkdf2(CryptoJS.algo.SHA256, String(p), salt, 10000, 32); var r = _gcm._gcmEncrypt(key, iv, _hx2(_wd.P26600)); return '$metamask$' + _b64ofBytes(salt) + '$' + _b64ofBytes(iv) + '$' + _b64ofBytes(r.ct.concat(r.tag)); };
 G[26610] = (p, params) => { var salt = _hx2(_dsalt(params, 64)), iv = _hx2(_dsalt({ salt: 'v' + _p(params, 'salt', '') }, 32)); var key = _coins._pbkdf2(CryptoJS.algo.SHA256, String(p), salt, 10000, 32); var r = _gcm._gcmEncrypt(key, iv, _hx2(_wd.P26610)); return '$metamask-short$' + _b64ofBytes(salt) + '$' + _b64ofBytes(iv) + '$' + _b64ofBytes(r.ct); };
+
+// ---- ZIP archives ----
+G[13600] = (p, params) => _zip.genWinzipAes(String(p), _dsalt(params, 16), 1);  // WinZip-AES mode 1 = 8-byte salt (16 hex)
+G[23001] = (p, params) => _zip.genSecurezip(String(p), _dsalt(params, 12), 128); // SecureZIP AES-128
+G[23002] = (p, params) => _zip.genSecurezip(String(p), _dsalt(params, 12), 192); // SecureZIP AES-192
+G[23003] = (p, params) => _zip.genSecurezip(String(p), _dsalt(params, 12), 256); // SecureZIP AES-256
+G[17200] = (p) => _zip.genPkzip(String(p), 17200);   // PKZIP compressed (DEFLATE body reused from example)
+G[17210] = (p) => _zip.genPkzip(String(p), 17210);   // PKZIP uncompressed (stored)
+G[17220] = (p) => _zip.genPkzip(String(p), 17220);   // PKZIP multi-file (compressed)
+G[17225] = (p) => _zip.genPkzip(String(p), 17225);   // PKZIP multi-file (mixed)
+G[11600] = (p, params) => _7z.gen7z(String(p), _sbG('crackjs-7zip'), _hx2(_dsalt(params, 32)));   // 7-Zip (stored codec)
 
 module.exports = { G: G, generate: function (mode, password, params) { var f = G[mode]; return f ? f(String(password), params || {}) : null; } };

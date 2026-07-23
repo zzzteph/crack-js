@@ -1,10 +1,10 @@
 # crack-js
 
-A pure-JavaScript library for **verifying, identifying, generating, and benchmarking hashes in hashcat mode format** — 321 hash types, entirely client-side, with **crypto-js** as the only runtime dependency.
+A pure-JavaScript library for **verifying, identifying, generating, and benchmarking hashes in hashcat mode format** — 330 hash types, entirely client-side, with **crypto-js** as the only runtime dependency.
 
-- **321** hash modes supported (verify + identify) · **280** with generators · **192** single-shot
+- **330** hash modes supported (verify + identify) · **289** with generators · **192** single-shot
 - Runs in Node **and** the browser from a single UMD build (`dist/crack.js`)
-- No network and no native code — pure JS + crypto-js
+- No network and no native code — pure JS + crypto-js (includes hand-written Keccak, BLAKE2, scrypt, Argon2, secp256k1, and an LZMA/LZMA2 decoder for 7-Zip)
 
 ## Install
 
@@ -23,7 +23,7 @@ In the browser:
 <script>/* window.crack is now available */</script>
 ```
 
-An interactive demo — speed benchmark, hash identifier, and generator — is in **`index.html`**.
+An interactive demo — speed benchmark, hash identifier, generator, and a Web-Worker dictionary-attack "crack" tab — is in **`index.html`**.
 
 ## Functions
 
@@ -41,9 +41,9 @@ An interactive demo — speed benchmark, hash identifier, and generator — is i
 
 | Export | Description |
 |---|---|
-| `availableHashTypes` | Array of all 321 type names. |
+| `availableHashTypes` | Array of all 330 type names. |
 | `hashTypes` | Array of `{ mode, modes, name, names, fast, generatable }` per type. |
-| `generatableModes` | Array of the 280 mode numbers that have a generator. |
+| `generatableModes` | Array of the 289 mode numbers that have a generator. |
 | `modeInfo` | Map of `{ mode: name }`. |
 
 ### Example
@@ -59,7 +59,7 @@ crack.measureSpeed('md5');        // hashes/sec, 5-second test
 
 ## Supported hash modes
 
-`✅` marks modes with a generator (`generateHash`); all 321 can be verified and identified. Examples are hashcat’s own test vectors (long ones truncated).
+`✅` marks modes with a generator (`generateHash`); all 330 can be verified and identified. Examples are hashcat’s own test vectors (long ones truncated).
 
 | Mode | Name | Gen | Example |
 |--:|---|:-:|---|
@@ -210,6 +210,7 @@ crack.measureSpeed('md5');        // hashes/sec, 5-second test
 | 11100 | `postgresql-cram-md5` | ✅ | `$postgres$postgres*74402844*4e7fabaaf34d780c4a5822d28ee1c83e` |
 | 11200 | `mysql-cram-sha1` | ✅ | `$mysqlna$2576670568531371763643101056213751754328*5e4be686a3149a1284…` |
 | 11300 | `bitcoin-wallet-dat` | ✅ | `$bitcoin$96$c265931309b4a59307921cf054b4ec6b6e4554369be79802e94e1647…` |
+| 11600 | `7zip` | ✅ | `$7z$0$14$0$$11$33363437353138333138300000000000$2365089182$16$12$d00…` |
 | 11900 | `pbkdf2-hmac-md5` | ✅ | `md5:1000:NjAxMDY4MQ==:a00DtIW9hP9voC85fmEA5uVhgdDx67nSPSm9yADHjkI=` |
 | 12000 | `pbkdf2-hmac-sha1` | ✅ | `sha1:1000:MTYwNTM4MDU4Mzc4MzA=:aGghFQBtQ8+WVlMk5GEaMw==` |
 | 12100 | `pbkdf2-hmac-sha512` | ✅ | `sha512:1000:NzY2:DNWohLbdIWIt4Npk9gpTvA==` |
@@ -223,6 +224,7 @@ crack.measureSpeed('md5');        // hashes/sec, 5-second test
 | 13000 | `rar5` |  | `$rar5$16$38466361001011015181344360681307$15$00000000000000000000000…` |
 | 13100 | `krb5tgs-23` | ✅ | `$krb5tgs$23$*user$realm$test/spn*$b548e10f5694ae018d7ad63c257af7dc$3…` |
 | 13500 | `peoplesoft-ps-token` | ✅ | `24eea51b53d02b4c5ff99bcb05a6847fdb2d9308:4f10a0de76e242040c28e9d3dd1…` |
+| 13600 | `winzip` | ✅ | `$zip2$*0*1*0*0675369741458183*5dc5*0**36b85538918416712640*$/zip2$` |
 | 13900 | `opencart` | ✅ | `058c1c3773340c8563421e2b17e60eb7c916787e:827500576` |
 | 14000 | `des-ecb` | ✅ | `53b325182924b356:1412781058343178` |
 | 14100 | `3des-ede-ecb` | ✅ | `4c29eea59d8db1e7:7428288455525516` |
@@ -240,6 +242,10 @@ crack.measureSpeed('md5');        // hashes/sec, 5-second test
 | 16600 | `electrum-salt1` | ✅ | `$electrum$1*44358283104603165383613672586868*c43a6632d9f59364f74c395…` |
 | 16800 | `wpa-pmkid-pbkdf2` | ✅ | `2582a8281bf9d4308d6f5731d0e61c61:4604ba734d4e:89acf0e761f4:ed4871624…` |
 | 16801 | `wpa-pmkid-pmk` |  | `2582a8281bf9d4308d6f5731d0e61c61:4604ba734d4e:89acf0e761f4` |
+| 17200 | `pkzip-compressed` | ✅ | `$pkzip2$1*1*2*0*e3*1c5*eda7a8de*0*28*8*e3*eda7*5096*a9fc1f4e951c8fb3…` |
+| 17210 | `pkzip-uncompressed` | ✅ | `$pkzip2$1*1*2*0*1d1*1c5*eda7a8de*0*28*0*1d1*eda7*5096*1dea673da43d9f…` |
+| 17220 | `pkzip-multi-compressed` | ✅ | `$pkzip2$3*1*1*0*8*24*a425*8827*d1730095cd829e245df04ebba6c52c0573d49…` |
+| 17225 | `pkzip-multi-mixed` | ✅ | `$pkzip2$3*1*1*0*0*24*3e2c*3ef8*0619e9d17ff3f994065b99b1fa8aef41c056e…` |
 | 17300 | `sha3-224` | ✅ | `412ef78534ba6ab0e9b1607d3e9767a25c1ea9d5e83176b4c2817a6c` |
 | 17400 | `sha3-256` | ✅ | `d60fcf6585da4e17224f58858970f0ed5ab042c3916b76b0b828e62eaf636cbd` |
 | 17500 | `sha3-384` | ✅ | `983ba28532cc6320d04f20fa485bcedb38bddb666eca5f1e5aa279ff1c6244fe5f83…` |
@@ -293,6 +299,9 @@ crack.measureSpeed('md5');        // hashes/sec, 5-second test
 | 22500 | `multibit-classic-md5` |  | `$multibit$1*e5912fe5c84af3d5*5f0391c219e8ef62c06505b1f6232858f5bcaa7…` |
 | 22700 | `multibit-hd-scrypt` |  | `$multibit$2*2e311aa2cc5ec99f7073cacc8a2d1938*e3ad782e7f92d66a3cdfaec…` |
 | 22800 | `simpla-md5-salt-pass-md5pass` | ✅ | `86d173f13213d1e48bce9647bdc306d5:8e86a279d6e182b3c811c559e6b15484` |
+| 23001 | `securezip-aes128` | ✅ | `$zip3$*0*1*128*0*b4630625c92b6e7848f6fd86*df2f62611b3d02d2c7e05a48da…` |
+| 23002 | `securezip-aes192` | ✅ | `$zip3$*0*1*192*0*53ff2de8c280778e1e0ab997*603eb37dbab9ea109e2c405e37…` |
+| 23003 | `securezip-aes256` | ✅ | `$zip3$*0*1*256*0*39bff47df6152a0214d7a967*65ff418ffb3b1198cccdef0327…` |
 | 23400 | `bitwarden` | ✅ | `$bitwarden$2*100000*2*bm9yZXBseUBoYXNoY2F0Lm5ldA==*+v5rHxYydSRUDlan+…` |
 | 23700 | `rar3p-uncompressed` |  | `$RAR3$*1*e54a73729887cb53*49b0a846*16*14*1*34620bcca8176642a210b1051…` |
 | 24300 | `sha1-salt-sha1-pass-salt` | ✅ | `94520b02c04e79e08a75a84c2a6e3ed4e3874fe8:ThisIsATestSalt` |

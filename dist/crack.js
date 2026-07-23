@@ -11631,6 +11631,661 @@ var crack = (() => {
     }
   });
 
+  // src/inflate.js
+  var require_inflate = __commonJS({
+    "src/inflate.js"(exports, module) {
+      var _LEN_BASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
+      var _LEN_EXTRA = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
+      var _DIST_BASE = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577];
+      var _DIST_EXTRA = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+      var _CLC_ORDER = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+      function _buildHuffman(lengths) {
+        var maxLen = 0, i;
+        for (i = 0; i < lengths.length; i++) if (lengths[i] > maxLen) maxLen = lengths[i];
+        var blCount = new Array(maxLen + 1).fill(0);
+        for (i = 0; i < lengths.length; i++) blCount[lengths[i]]++;
+        blCount[0] = 0;
+        var nextCode = new Array(maxLen + 1).fill(0), code = 0;
+        for (var bits = 1; bits <= maxLen; bits++) {
+          code = code + blCount[bits - 1] << 1;
+          nextCode[bits] = code;
+        }
+        var map = {};
+        for (i = 0; i < lengths.length; i++) if (lengths[i]) map[lengths[i] << 16 | nextCode[lengths[i]]++] = i;
+        return { map, maxLen };
+      }
+      var _FIXED_LIT = function() {
+        var l = [];
+        for (var i = 0; i < 144; i++) l[i] = 8;
+        for (; i < 256; i++) l[i] = 9;
+        for (; i < 280; i++) l[i] = 7;
+        for (; i < 288; i++) l[i] = 8;
+        return _buildHuffman(l);
+      }();
+      var _FIXED_DIST = _buildHuffman(new Array(30).fill(5));
+      function inflateRaw(input, maxOut) {
+        var out = [], pos = 0, bitBuf = 0, bitCnt = 0;
+        var cap = maxOut != null && maxOut >= 0 ? maxOut + 16 : 67108864;
+        function getBit() {
+          if (bitCnt === 0) {
+            if (pos >= input.length) throw new Error("inflate: eof");
+            bitBuf = input[pos++] | 0;
+            bitCnt = 8;
+          }
+          var b = bitBuf & 1;
+          bitBuf >>= 1;
+          bitCnt--;
+          return b;
+        }
+        function getBits(n2) {
+          var v = 0;
+          for (var i2 = 0; i2 < n2; i2++) v |= getBit() << i2;
+          return v;
+        }
+        function decode(h) {
+          var code = 0, len = 0;
+          while (len <= h.maxLen) {
+            code = code << 1 | getBit();
+            len++;
+            var s2 = h.map[len << 16 | code];
+            if (s2 !== void 0) return s2;
+          }
+          throw new Error("inflate: bad code");
+        }
+        var bfinal, i, k;
+        do {
+          bfinal = getBit();
+          var btype = getBits(2);
+          if (btype === 0) {
+            bitCnt = 0;
+            var blen = input[pos] | input[pos + 1] << 8;
+            pos += 4;
+            if (pos + blen > input.length || out.length + blen > cap) throw new Error("inflate: eof");
+            for (k = 0; k < blen; k++) out.push(input[pos++] & 255);
+          } else if (btype === 1 || btype === 2) {
+            var litH, distH;
+            if (btype === 1) {
+              litH = _FIXED_LIT;
+              distH = _FIXED_DIST;
+            } else {
+              var hlit = getBits(5) + 257, hdist = getBits(5) + 1, hclen = getBits(4) + 4;
+              var clcLen = new Array(19).fill(0);
+              for (i = 0; i < hclen; i++) clcLen[_CLC_ORDER[i]] = getBits(3);
+              var clcH = _buildHuffman(clcLen);
+              var all = [], n = hlit + hdist;
+              while (all.length < n) {
+                var sym = decode(clcH);
+                if (sym < 16) all.push(sym);
+                else if (sym === 16) {
+                  var r = getBits(2) + 3, p = all[all.length - 1];
+                  while (r-- > 0) all.push(p);
+                } else if (sym === 17) {
+                  var r2 = getBits(3) + 3;
+                  while (r2-- > 0) all.push(0);
+                } else {
+                  var r3 = getBits(7) + 11;
+                  while (r3-- > 0) all.push(0);
+                }
+              }
+              litH = _buildHuffman(all.slice(0, hlit));
+              distH = _buildHuffman(all.slice(hlit));
+            }
+            while (true) {
+              var s = decode(litH);
+              if (s < 256) {
+                out.push(s);
+                if (out.length > cap) throw new Error("inflate: overflow");
+              } else if (s === 256) break;
+              else {
+                s -= 257;
+                var length = _LEN_BASE[s] + getBits(_LEN_EXTRA[s]);
+                var ds = decode(distH);
+                var dist = _DIST_BASE[ds] + getBits(_DIST_EXTRA[ds]);
+                var start = out.length - dist;
+                if (start < 0 || out.length + length > cap) throw new Error("inflate: overflow");
+                for (k = 0; k < length; k++) out.push(out[start + k]);
+              }
+            }
+          } else throw new Error("inflate: bad btype");
+        } while (!bfinal);
+        return out;
+      }
+      module.exports = { inflateRaw };
+    }
+  });
+
+  // src/zip.js
+  var require_zip = __commonJS({
+    "src/zip.js"(exports, module) {
+      var u = require_util();
+      var CryptoJS2 = u.CryptoJS;
+      var _waToBytes = u._waToBytes;
+      var _bytesToHex = u._bytesToHex;
+      var _bytesToWA = u._bytesToWA;
+      var _hexToBytes = u._hexToBytes;
+      var _utf8Bytes = u._utf8Bytes;
+      var _pkInflate = require_inflate().inflateRaw;
+      var _pkCrc32 = require_rar().crc32;
+      function winzipDerive(password, saltBytes, mode) {
+        var keyLen = mode * 8 + 8, outLen = 2 * keyLen + 2;
+        var dk = _waToBytes(CryptoJS2.PBKDF2(
+          String(password),
+          _bytesToWA(saltBytes),
+          { keySize: Math.ceil(outLen / 4), iterations: 1e3, hasher: CryptoJS2.algo.SHA1 }
+        )).slice(0, outLen);
+        return { verify: _bytesToHex(dk.slice(outLen - 2)), authKey: dk.slice(keyLen, 2 * keyLen) };
+      }
+      function verifyWinzipAes2(password, hash) {
+        var m = /^\$zip2\$\*(\d+)\*([123])\*(\d+)\*([0-9a-fA-F]*)\*([0-9a-fA-F]*)\*(\d+)\*([0-9a-fA-F]*)\*([0-9a-fA-F]+)\*\$\/zip2\$$/.exec(String(hash));
+        if (!m) return false;
+        var d = winzipDerive(password, _hexToBytes(m[4]), parseInt(m[2], 10));
+        if (m[5] && d.verify !== m[5].toLowerCase()) return false;
+        var mac = _waToBytes(CryptoJS2.HmacSHA1(_bytesToWA(_hexToBytes(m[7])), _bytesToWA(d.authKey))).slice(0, 10);
+        return _bytesToHex(mac) === m[8].toLowerCase();
+      }
+      function genWinzipAes(password, saltHex, mode) {
+        mode = mode || 1;
+        saltHex = (saltHex || "0675369741458183").toLowerCase();
+        var d = winzipDerive(password, _hexToBytes(saltHex), mode);
+        var auth = _bytesToHex(_waToBytes(CryptoJS2.HmacSHA1(_bytesToWA([]), _bytesToWA(d.authKey))).slice(0, 10));
+        return "$zip2$*0*" + mode + "*0*" + saltHex + "*" + d.verify + "*0**" + auth + "*$/zip2$";
+      }
+      function securezipKey(password, keyLen) {
+        var K = _waToBytes(CryptoJS2.SHA1(_bytesToWA(_utf8Bytes(String(password)))));
+        var ipad = [], opad = [], i, b;
+        for (i = 0; i < 64; i++) {
+          b = i < 20 ? K[i] : 0;
+          ipad.push(b ^ 54);
+          opad.push(b ^ 92);
+        }
+        return _waToBytes(CryptoJS2.SHA1(_bytesToWA(ipad))).concat(_waToBytes(CryptoJS2.SHA1(_bytesToWA(opad)))).slice(0, keyLen);
+      }
+      function _securezipDecTail(password, hash) {
+        var m = /^\$zip3\$\*0\*1\*(128|192|256)\*0\*([0-9a-fA-F]+)\*([0-9a-fA-F]+)\*0\*0\*0\*.*$/.exec(String(hash));
+        if (!m) return null;
+        var iv = _hexToBytes(m[2]);
+        while (iv.length < 16) iv.push(0);
+        iv = iv.slice(0, 16);
+        var data = _hexToBytes(m[3]);
+        if (data.length < 16 || data.length % 16 !== 0) return null;
+        var key = securezipKey(password, parseInt(m[1], 10) / 8);
+        return _waToBytes(CryptoJS2.AES.decrypt(
+          CryptoJS2.lib.CipherParams.create({ ciphertext: _bytesToWA(data) }),
+          _bytesToWA(key),
+          { mode: CryptoJS2.mode.CBC, padding: CryptoJS2.pad.NoPadding, iv: _bytesToWA(iv) }
+        ));
+      }
+      function verifySecurezip2(password, hash) {
+        var dec = _securezipDecTail(password, hash);
+        if (!dec) return false;
+        for (var i = dec.length - 16; i < dec.length; i++) if (dec[i] !== 16) return false;
+        return true;
+      }
+      function genSecurezip(password, ivHex, bitLen) {
+        bitLen = bitLen || 256;
+        ivHex = (ivHex || "39bff47df6152a0214d7a967").toLowerCase();
+        var iv = _hexToBytes(ivHex);
+        while (iv.length < 16) iv.push(0);
+        iv = iv.slice(0, 16);
+        var key = securezipKey(password, bitLen / 8), pt = [], i;
+        for (i = 0; i < 128; i++) pt.push(42);
+        for (i = 0; i < 16; i++) pt.push(16);
+        var ct = _waToBytes(CryptoJS2.AES.encrypt(
+          _bytesToWA(pt),
+          _bytesToWA(key),
+          { mode: CryptoJS2.mode.CBC, padding: CryptoJS2.pad.NoPadding, iv: _bytesToWA(iv) }
+        ).ciphertext);
+        return "$zip3$*0*1*" + bitLen + "*0*" + ivHex + "*" + _bytesToHex(ct) + "*0*0*0*file.txt";
+      }
+      var _PK_T = function() {
+        var t = [], c, n, k;
+        for (n = 0; n < 256; n++) {
+          c = n;
+          for (k = 0; k < 8; k++) c = c & 1 ? 3988292384 ^ c >>> 1 : c >>> 1;
+          t[n] = c >>> 0;
+        }
+        return t;
+      }();
+      function _pkc(crc, b) {
+        return (crc >>> 8 ^ _PK_T[(crc ^ b) & 255]) >>> 0;
+      }
+      function _pkUpd(k, b) {
+        k[0] = _pkc(k[0], b);
+        k[1] = k[1] + (k[0] & 255) >>> 0;
+        k[1] = Math.imul(k[1], 134775813) + 1 >>> 0;
+        k[2] = _pkc(k[2], k[1] >>> 24 & 255);
+      }
+      function _pkInit(pw) {
+        var k = [305419896, 591751049, 878082192], i;
+        for (i = 0; i < pw.length; i++) _pkUpd(k, pw[i]);
+        return k;
+      }
+      function _pkDec(k, ct) {
+        var out = [], i, t, b;
+        for (i = 0; i < ct.length; i++) {
+          t = (k[2] | 2) & 65535;
+          b = ct[i] ^ t * (t ^ 1) >>> 8 & 255;
+          _pkUpd(k, b);
+          out.push(b);
+        }
+        return out;
+      }
+      function _pkEnc(k, pt) {
+        var out = [], i, t;
+        for (i = 0; i < pt.length; i++) {
+          t = (k[2] | 2) & 65535;
+          out.push(pt[i] ^ t * (t ^ 1) >>> 8 & 255);
+          _pkUpd(k, pt[i]);
+        }
+        return out;
+      }
+      function _pkEntries(f) {
+        if (f.length < 6) return null;
+        var sig = f[0], v2 = /^\$pkzip2\$/.test(sig);
+        if (!v2 && !/^\$pkzip\$/.test(sig)) return null;
+        if (f[f.length - 1] !== (v2 ? "$/pkzip2$" : "$/pkzip$")) return null;
+        var hashCount = parseInt(sig.charAt(sig.length - 1), 10);
+        if (!(hashCount >= 1 && hashCount <= 8)) return null;
+        var idx = 2, entries = [], e, ent, dataType;
+        for (e = 0; e < hashCount; e++) {
+          if (idx + 4 > f.length) return null;
+          dataType = parseInt(f[idx], 10);
+          idx += 2;
+          ent = { hasCrc: false, ctype: 0, ulen: 0, crc: 0, dataIdx: -1 };
+          if (dataType > 1) {
+            idx++;
+            ent.ulen = parseInt(f[idx++], 16);
+            ent.crc = parseInt(f[idx++], 16) >>> 0;
+            idx += 2;
+            ent.hasCrc = true;
+          }
+          ent.ctype = parseInt(f[idx++], 10);
+          idx += v2 ? 3 : 2;
+          ent.dataIdx = idx++;
+          entries.push(ent);
+        }
+        return idx === f.length - 1 ? entries : null;
+      }
+      function verifyPkzip2(password, hash) {
+        var f = String(hash).trim().split("*"), entries = _pkEntries(f);
+        if (!entries) return false;
+        var pw = _utf8Bytes(String(password)), any = false, e, ent, data, k, body, plain;
+        for (e = 0; e < entries.length; e++) {
+          ent = entries[e];
+          if (!ent.hasCrc) continue;
+          var dataHex = f[ent.dataIdx];
+          if (!dataHex || !/^[0-9a-fA-F]+$/.test(dataHex)) return false;
+          data = _hexToBytes(dataHex);
+          if (data.length < 13) return false;
+          k = _pkInit(pw);
+          _pkDec(k, data.slice(0, 12));
+          body = _pkDec(k, data.slice(12));
+          if (ent.ctype === 0) plain = body;
+          else if (ent.ctype === 8) {
+            try {
+              plain = _pkInflate(body, ent.ulen);
+            } catch (err) {
+              return false;
+            }
+          } else return false;
+          if (_pkCrc32(plain.slice(0, ent.ulen)) >>> 0 !== ent.crc) return false;
+          any = true;
+        }
+        return any;
+      }
+      function validatePkzip(hash, opts) {
+        var entries = _pkEntries(String(hash).trim().split("*"));
+        if (!entries) return false;
+        if (opts.single && entries.length !== 1) return false;
+        if (opts.multi && entries.length < 2) return false;
+        if (opts.ctype != null && entries[0].ctype !== opts.ctype) return false;
+        return true;
+      }
+      var _PKZIP_EX = {
+        "17210": "$pkzip2$1*1*2*0*1d1*1c5*eda7a8de*0*28*0*1d1*eda7*5096*1dea673da43d9fc7e2be1a1f4f664269fceb6cb88723a97408ae1fe07f774d31d1442ea8485081e63f919851ca0b7588d5e3442317fff19fe547a4ef97492ed75417c427eea3c4e146e16c100a2f8b6abd7e5988dc967e5a0e51f641401605d673630ea52ebb04da4b388489901656532c9aa474ca090dbac7cf8a21428d57b42a71da5f3d83fed927361e5d385ca8e480a6d42dea5b4bf497d3a24e79fc7be37c8d1721238cbe9e1ea3ae1eb91fc02aabdf33070d718d5105b70b3d7f3d2c28b3edd822e89a5abc0c8fee117c7fbfbfd4b4c8e130977b75cb0b1da080bfe1c0859e6483c42f459c8069d45a76220e046e6c2a2417392fd87e4aa4a2559eaab3baf78a77a1b94d8c8af16a977b4bb45e3da211838ad044f209428dba82666bf3d54d4eed82c64a9b3444a44746b9e398d0516a2596d84243b4a1d7e87d9843f38e45b6be67fd980107f3ad7b8453d87300e6c51ac9f5e3f6c3b702654440c543b1d808b62f7a313a83b31a6faaeedc2620de7057cd0df80f70346fe2d4dccc318f0b5ed128bcf0643e63d754bb05f53afb2b0fa90b34b538b2ad3648209dff587df4fa18698e4fa6d858ad44aa55d2bba3b08dfdedd3e28b8b7caf394d5d9d95e452c2ab1c836b9d74538c2f0d24b9b577*$/pkzip2$",
+        "17200": "$pkzip2$1*1*2*0*e3*1c5*eda7a8de*0*28*8*e3*eda7*5096*a9fc1f4e951c8fb3031a6f903e5f4e3211c8fdc4671547bf77f6f682afbfcc7475d83898985621a7af9bccd1349d1976500a68c48f630b7f22d7a0955524d768e34868880461335417ddd149c65a917c0eb0a4bf7224e24a1e04cf4ace5eef52205f4452e66ded937db9545f843a68b1e84a2e933cc05fb36d3db90e6c5faf1bee2249fdd06a7307849902a8bb24ec7e8a0886a4544ca47979a9dfeefe034bdfc5bd593904cfe9a5309dd199d337d3183f307c2cb39622549a5b9b8b485b7949a4803f63f67ca427a0640ad3793a519b2476c52198488e3e2e04cac202d624fb7d13c2*$/pkzip2$",
+        "17220": "$pkzip2$3*1*1*0*8*24*a425*8827*d1730095cd829e245df04ebba6c52c0573d49d3bbeab6cb385b7fa8a28dcccd3098bfdd7*1*0*8*24*2a74*882a*51281ac874a60baedc375ca645888d29780e20d4076edd1e7154a99bde982152a736311f*2*0*e3*1c5*eda7a8de*0*29*8*e3*eda7*5096*1455781b59707f5151139e018bdcfeebfc89bc37e372883a7ec0670a5eafc622feb338f9b021b6601a674094898a91beac70e41e675f77702834ca6156111a1bf7361bc9f3715d77dfcdd626634c68354c6f2e5e0a7b1e1ce84a44e632d0f6e36019feeab92fb7eac9dda8df436e287aafece95d042059a1b27d533c5eab62c1c559af220dc432f2eb1a38a70f29e8f3cb5a207704274d1e305d7402180fd47e026522792f5113c52a116d5bb25b67074ffd6f4926b221555234aabddc69775335d592d5c7d22462b75de1259e8342a9ba71cb06223d13c7f51f13be2ad76352c3b8ed*$/pkzip2$",
+        "17225": "$pkzip2$3*1*1*0*0*24*3e2c*3ef8*0619e9d17ff3f994065b99b1fa8aef41c056edf9fa4540919c109742dcb32f797fc90ce0*1*0*8*24*431a*3f26*18e2461c0dbad89bd9cc763067a020c89b5e16195b1ac5fa7fb13bd246d000b6833a2988*2*0*23*17*1e3c1a16*2e4*2f*0*23*1e3c*3f2d*54ea4dbc711026561485bbd191bf300ae24fa0997f3779b688cdad323985f8d3bb8b0c*$/pkzip2$"
+      };
+      function genPkzip(password, mode) {
+        var f = _PKZIP_EX[String(mode)].split("*"), entries = _pkEntries(f);
+        if (!entries) return null;
+        var pw = _utf8Bytes(String(password)), e, di, plain;
+        for (e = 0; e < entries.length; e++) {
+          di = entries[e].dataIdx;
+          plain = _pkDec(_pkInit(_utf8Bytes("hashcat")), _hexToBytes(f[di]));
+          f[di] = _bytesToHex(_pkEnc(_pkInit(pw), plain));
+        }
+        return f.join("*");
+      }
+      module.exports = {
+        verifyWinzipAes: verifyWinzipAes2,
+        genWinzipAes,
+        verifySecurezip: verifySecurezip2,
+        genSecurezip,
+        verifyPkzip: verifyPkzip2,
+        validatePkzip,
+        genPkzip
+      };
+    }
+  });
+
+  // src/lzma.js
+  var require_lzma = __commonJS({
+    "src/lzma.js"(exports, module) {
+      function makeLzma(lc, lp, pb) {
+        var STATES = 12;
+        function np(n) {
+          var a = new Uint16Array(n);
+          for (var i = 0; i < n; i++) a[i] = 1024;
+          return a;
+        }
+        return {
+          lc,
+          lp,
+          pb,
+          IsMatch: np(STATES << 4),
+          IsRep: np(STATES),
+          IsRepG0: np(STATES),
+          IsRepG1: np(STATES),
+          IsRepG2: np(STATES),
+          IsRep0Long: np(STATES << 4),
+          PosSlot: np(4 * 64),
+          SpecPos: np(128),
+          Align: np(16),
+          Lit: np(768 << lc + lp),
+          LenC: { c: np(2), lo: np(16 * 8), mi: np(16 * 8), hi: np(256) },
+          RepLenC: { c: np(2), lo: np(16 * 8), mi: np(16 * 8), hi: np(256) },
+          state: 0,
+          r0: 0,
+          r1: 0,
+          r2: 0,
+          r3: 0
+        };
+      }
+      function lzmaRun(S, input, ipRef, out, op, limit) {
+        var lc = S.lc, lp = S.lp, pb = S.pb;
+        var ip = ipRef.ip;
+        function rd() {
+          return ip < input.length ? input[ip++] & 255 : 0;
+        }
+        var range = 4294967295 >>> 0, code = 0;
+        rd();
+        for (var z = 0; z < 4; z++) code = (code << 8 | rd()) >>> 0;
+        function norm() {
+          if (range >>> 0 < 16777216) {
+            range = range << 8 >>> 0;
+            code = (code << 8 | rd()) >>> 0;
+          }
+        }
+        function bit(P, i) {
+          var p = P[i], bound = (range >>> 11) * p >>> 0, s;
+          if (code >>> 0 < bound >>> 0) {
+            range = bound;
+            P[i] = p + (2048 - p >>> 5);
+            s = 0;
+          } else {
+            code = code - bound >>> 0;
+            range = range - bound >>> 0;
+            P[i] = p - (p >>> 5);
+            s = 1;
+          }
+          norm();
+          return s;
+        }
+        function direct(n) {
+          var r = 0;
+          do {
+            range = range >>> 1 >>> 0;
+            code = code - range >>> 0;
+            var t = 0 - (code >>> 31);
+            code = code + (range & t) >>> 0;
+            norm();
+            r = (r << 1) + (t + 1) >>> 0;
+          } while (--n);
+          return r >>> 0;
+        }
+        function tree(P, off2, n) {
+          var m = 1;
+          for (var i = 0; i < n; i++) m = (m << 1) + bit(P, off2 + m);
+          return m - (1 << n);
+        }
+        function treeRev(P, off2, n) {
+          var m = 1, s = 0;
+          for (var i = 0; i < n; i++) {
+            var b2 = bit(P, off2 + m);
+            m = (m << 1) + b2;
+            s |= b2 << i;
+          }
+          return s;
+        }
+        function len(L, ps2) {
+          if (bit(L.c, 0) === 0) return tree(L.lo, ps2 << 3, 3);
+          if (bit(L.c, 1) === 0) return 8 + tree(L.mi, ps2 << 3, 3);
+          return 16 + tree(L.hi, 0, 8);
+        }
+        var psMask = (1 << pb) - 1, lpMask = (1 << lp) - 1;
+        var state = S.state, r0 = S.r0, r1 = S.r1, r2 = S.r2, r3 = S.r3;
+        while (op < limit) {
+          var ps = op & psMask;
+          if (bit(S.IsMatch, (state << 4) + ps) === 0) {
+            var prev = op > 0 ? out[op - 1] : 0;
+            var litState = ((op & lpMask) << lc) + (prev >>> 8 - lc);
+            var off = 768 * litState, sym = 1;
+            if (state >= 7) {
+              var mb = out[op - r0 - 1];
+              do {
+                var matchBit = mb >> 7 & 1;
+                mb = mb << 1 & 255;
+                var b = bit(S.Lit, off + (1 + matchBit << 8) + sym);
+                sym = sym << 1 | b;
+                if (matchBit !== b) break;
+              } while (sym < 256);
+            }
+            while (sym < 256) sym = sym << 1 | bit(S.Lit, off + sym);
+            out[op++] = sym & 255;
+            state = state < 4 ? 0 : state < 10 ? state - 3 : state - 6;
+          } else {
+            var Ln;
+            if (bit(S.IsRep, state) === 1) {
+              if (bit(S.IsRepG0, state) === 0) {
+                if (bit(S.IsRep0Long, (state << 4) + ps) === 0) {
+                  state = state < 7 ? 9 : 11;
+                  out[op] = out[op - r0 - 1];
+                  op++;
+                  continue;
+                }
+              } else {
+                var dist;
+                if (bit(S.IsRepG1, state) === 0) dist = r1;
+                else {
+                  if (bit(S.IsRepG2, state) === 0) dist = r2;
+                  else {
+                    dist = r3;
+                    r3 = r2;
+                  }
+                  r2 = r1;
+                }
+                r1 = r0;
+                r0 = dist;
+              }
+              Ln = len(S.RepLenC, ps) + 2;
+              state = state < 7 ? 8 : 11;
+            } else {
+              r3 = r2;
+              r2 = r1;
+              r1 = r0;
+              Ln = len(S.LenC, ps) + 2;
+              state = state < 7 ? 7 : 10;
+              var lps = Ln - 2 < 4 ? Ln - 2 : 3;
+              var slot = tree(S.PosSlot, lps << 6, 6);
+              if (slot < 4) r0 = slot;
+              else {
+                var nd = (slot >> 1) - 1;
+                r0 = (2 | slot & 1) << nd >>> 0;
+                if (slot < 14) r0 = r0 + treeRev(S.SpecPos, r0 - slot - 1, nd) >>> 0;
+                else {
+                  r0 = r0 + (direct(nd - 4) << 4) >>> 0;
+                  r0 = r0 + treeRev(S.Align, 0, 4) >>> 0;
+                }
+              }
+              if (r0 >>> 0 === 4294967295) break;
+            }
+            for (var k = 0; k < Ln && op < limit; k++) {
+              out[op] = out[op - r0 - 1];
+              op++;
+            }
+          }
+        }
+        S.state = state;
+        S.r0 = r0;
+        S.r1 = r1;
+        S.r2 = r2;
+        S.r3 = r3;
+        ipRef.ip = ip;
+        return op;
+      }
+      function lzmaDecode(input, props, outLen) {
+        var d = props[0] & 255, lc = d % 9;
+        d = (d - lc) / 9;
+        var lp = d % 5, pb = (d - lp) / 5;
+        var S = makeLzma(lc, lp, pb);
+        var out = new Uint8Array(outLen);
+        lzmaRun(S, input, { ip: 0 }, out, 0, outLen);
+        return out;
+      }
+      function lzma2Decode(input, dictByte, outLen) {
+        var out = new Uint8Array(outLen), op = 0, ip = 0;
+        var S = null;
+        function u8() {
+          return input[ip++] & 255;
+        }
+        while (op < outLen && ip < input.length) {
+          var ctrl = u8();
+          if (ctrl === 0) break;
+          if (ctrl < 3) {
+            var usize = (u8() << 8 | u8()) + 1;
+            for (var i = 0; i < usize; i++) out[op++] = u8();
+            if (S) {
+              S.state = 0;
+              S.r0 = S.r1 = S.r2 = S.r3 = 0;
+            }
+          } else if (ctrl >= 128) {
+            var unpackSize = ((ctrl & 31) << 16 | u8() << 8 | u8()) + 1;
+            var packSize = (u8() << 8 | u8()) + 1;
+            var reset = ctrl >> 5 & 3;
+            if (reset >= 2) {
+              var p = u8(), lc = p % 9;
+              p = (p - lc) / 9;
+              var lp = p % 5, pb = (p - lp) / 5;
+              S = makeLzma(lc, lp, pb);
+            } else if (reset >= 1) {
+              S = makeLzma(S.lc, S.lp, S.pb);
+            }
+            var ref = { ip };
+            op = lzmaRun(S, input, ref, out, op, op + unpackSize);
+            ip += packSize;
+          } else return out;
+        }
+        return out;
+      }
+      module.exports = { lzmaDecode, lzma2Decode };
+    }
+  });
+
+  // src/sevenzip.js
+  var require_sevenzip = __commonJS({
+    "src/sevenzip.js"(exports, module) {
+      var u = require_util();
+      var CryptoJS2 = u.CryptoJS;
+      var _waToBytes = u._waToBytes;
+      var _bytesToHex = u._bytesToHex;
+      var _bytesToWA = u._bytesToWA;
+      var _hexToBytes = u._hexToBytes;
+      var _lzma = require_lzma();
+      var _inflate = require_inflate().inflateRaw;
+      var _crc32 = require_rar().crc32;
+      function _u16le(s) {
+        var b = [], i, c;
+        for (i = 0; i < s.length; i++) {
+          c = s.charCodeAt(i);
+          b.push(c & 255, c >> 8 & 255);
+        }
+        return b;
+      }
+      function sevenzipKey(password, saltBytes, cost) {
+        var rounds = Math.pow(2, cost);
+        var pwWA = _bytesToWA(_u16le(String(password)));
+        var saltWA = saltBytes.length ? _bytesToWA(saltBytes) : null;
+        var sha = CryptoJS2.algo.SHA256.create();
+        for (var i = 0; i < rounds; i++) {
+          if (saltWA) sha.update(saltWA);
+          sha.update(pwWA);
+          sha.update(_bytesToWA([i & 255, i >>> 8 & 255, i >>> 16 & 255, i >>> 24 & 255, 0, 0, 0, 0]));
+        }
+        return sha.finalize();
+      }
+      function _decompress(dataType, dec, coderAttr, crcLen) {
+        if (dataType === 0) return dec;
+        if (dataType === 1) return _lzma.lzmaDecode(dec, coderAttr, crcLen);
+        if (dataType === 2) return _lzma.lzma2Decode(dec, coderAttr ? coderAttr[0] : 0, crcLen);
+        if (dataType === 7) return _inflate(dec, crcLen);
+        return null;
+      }
+      function verify7z2(password, hash) {
+        var s = String(hash).trim();
+        if (s.slice(0, 4) !== "$7z$") return false;
+        var f = s.slice(4).split("$");
+        if (f.length < 10) return false;
+        var dataType = parseInt(f[0], 10), cost = parseInt(f[1], 10);
+        var salt = _hexToBytes(f[3]);
+        var crc = parseInt(f[6], 10) >>> 0;
+        var dataLen = parseInt(f[7], 10), unpackSize = parseInt(f[8], 10);
+        var data = _hexToBytes(f[9]);
+        if (data.length !== dataLen || dataLen === 0 || dataLen % 16 !== 0) return false;
+        var crcLen = f.length > 10 ? parseInt(f[10], 10) : unpackSize;
+        var coderAttr = f.length > 11 ? _hexToBytes(f[11]) : null;
+        var iv = _hexToBytes(f[5]);
+        while (iv.length < 16) iv.push(0);
+        iv = iv.slice(0, 16);
+        var key = sevenzipKey(password, salt, cost);
+        var dec = _waToBytes(CryptoJS2.AES.decrypt(
+          CryptoJS2.lib.CipherParams.create({ ciphertext: _bytesToWA(data) }),
+          key,
+          { mode: CryptoJS2.mode.CBC, padding: CryptoJS2.pad.NoPadding, iv: _bytesToWA(iv) }
+        ));
+        var plain, n = dataType === 0 ? unpackSize : crcLen;
+        try {
+          plain = _decompress(dataType, dec, coderAttr, crcLen);
+        } catch (e) {
+          return false;
+        }
+        if (!plain) return false;
+        var out = [], i;
+        for (i = 0; i < n && i < plain.length; i++) out.push(plain[i]);
+        return _crc32(out) >>> 0 === crc;
+      }
+      function build7z(password, opts) {
+        var cost = opts.cost || 14;
+        var iv = (opts.iv || []).slice();
+        while (iv.length < 16) iv.push(0);
+        iv = iv.slice(0, 16);
+        var comp = opts.comp.slice();
+        var packedLen = comp.length;
+        while (comp.length % 16 !== 0) comp.push(0);
+        var key = sevenzipKey(password, [], cost);
+        var enc = _waToBytes(CryptoJS2.AES.encrypt(_bytesToWA(comp), key, { mode: CryptoJS2.mode.CBC, padding: CryptoJS2.pad.NoPadding, iv: _bytesToWA(iv) }).ciphertext);
+        var h = "$7z$" + opts.dataType + "$" + cost + "$0$$16$" + _bytesToHex(iv) + "$" + (opts.crc >>> 0) + "$" + enc.length + "$" + packedLen + "$" + _bytesToHex(enc);
+        if (opts.dataType !== 0) h += "$" + opts.crcLen + "$" + _bytesToHex(opts.coderAttr);
+        return h;
+      }
+      function gen7z(password, plaintextBytes, ivBytes) {
+        return build7z(password, { dataType: 0, comp: plaintextBytes.slice(), crc: _crc32(plaintextBytes) >>> 0, iv: (ivBytes || []).slice() });
+      }
+      module.exports = { verify7z: verify7z2, sevenzipKey, build7z, gen7z };
+    }
+  });
+
   // src/noncrypto.js
   var require_noncrypto = __commonJS({
     "src/noncrypto.js"(exports, module) {
@@ -12714,6 +13369,8 @@ var crack = (() => {
       var _sha1raw2 = _dig2._sha1raw;
       var _sha256raw2 = _dig2._sha256raw;
       var _sha512raw2 = _dig2._sha512raw;
+      var _zip2 = require_zip();
+      var _7z = require_sevenzip();
       function _md5(s) {
         return CryptoJS2.MD5(CryptoJS2.enc.Latin1.parse(s)).toString();
       }
@@ -13869,6 +14526,15 @@ var crack = (() => {
         var r = _gcm._gcmEncrypt(key, iv, _hx2(_wd.P26610));
         return "$metamask-short$" + _b64ofBytes(salt) + "$" + _b64ofBytes(iv) + "$" + _b64ofBytes(r.ct);
       };
+      G[13600] = (p, params) => _zip2.genWinzipAes(String(p), _dsalt(params, 16), 1);
+      G[23001] = (p, params) => _zip2.genSecurezip(String(p), _dsalt(params, 12), 128);
+      G[23002] = (p, params) => _zip2.genSecurezip(String(p), _dsalt(params, 12), 192);
+      G[23003] = (p, params) => _zip2.genSecurezip(String(p), _dsalt(params, 12), 256);
+      G[17200] = (p) => _zip2.genPkzip(String(p), 17200);
+      G[17210] = (p) => _zip2.genPkzip(String(p), 17210);
+      G[17220] = (p) => _zip2.genPkzip(String(p), 17220);
+      G[17225] = (p) => _zip2.genPkzip(String(p), 17225);
+      G[11600] = (p, params) => _7z.gen7z(String(p), _sbG("crackjs-7zip"), _hx2(_dsalt(params, 32)));
       module.exports = { G, generate: function(mode, password, params) {
         var f = G[mode];
         return f ? f(String(password), params || {}) : null;
@@ -13876,10 +14542,658 @@ var crack = (() => {
     }
   });
 
+  // src/extract.js
+  var require_extract = __commonJS({
+    "src/extract.js"(exports, module) {
+      var u = require_util();
+      var _bytesToHex = u._bytesToHex;
+      function _toU8(input) {
+        if (input == null) throw new Error("extract: empty input");
+        if (input instanceof Uint8Array) return input;
+        if (typeof ArrayBuffer !== "undefined" && input instanceof ArrayBuffer) return new Uint8Array(input);
+        if (input.buffer && typeof input.byteLength === "number") return new Uint8Array(input.buffer, input.byteOffset || 0, input.byteLength);
+        if (Array.isArray(input)) return Uint8Array.from(input);
+        throw new Error("extract: unsupported input type");
+      }
+      function _u16(b, o) {
+        return b[o] | b[o + 1] << 8;
+      }
+      function _u32(b, o) {
+        return (b[o] | b[o + 1] << 8 | b[o + 2] << 16 | b[o + 3] << 24) >>> 0;
+      }
+      function _u64(b, o) {
+        return _u32(b, o) + _u32(b, o + 4) * 4294967296;
+      }
+      function _hex(b, o, n) {
+        var s = "";
+        for (var i = 0; i < n; i++) {
+          var h = (b[o + i] & 255).toString(16);
+          s += h.length < 2 ? "0" + h : h;
+        }
+        return s;
+      }
+      function _ascii(b, o, n) {
+        var s = "";
+        for (var i = 0; i < n; i++) s += String.fromCharCode(b[o + i]);
+        return s;
+      }
+      function _eq(b, o, sig) {
+        for (var i = 0; i < sig.length; i++) if (b[o + i] !== sig[i]) return false;
+        return true;
+      }
+      var SIG = {
+        zip: [80, 75, 3, 4],
+        // PK\3\4  (also 05 06 empty / 07 08 spanned)
+        zipc: [80, 75],
+        // any PK — central dir / eocd fallback
+        sevenzip: [55, 122, 188, 175, 39, 28],
+        rar4: [82, 97, 114, 33, 26, 7, 0],
+        // Rar!\x1a\x07\x00
+        rar5: [82, 97, 114, 33, 26, 7, 1, 0],
+        // Rar!\x1a\x07\x01\x00
+        ole: [208, 207, 17, 224, 161, 177, 26, 225],
+        // CFB — encrypted OOXML / legacy Office
+        hccapx: [72, 67, 80, 88],
+        // HCPX
+        pcap_le: [212, 195, 178, 161],
+        pcap_be: [161, 178, 195, 212],
+        pcapng: [10, 13, 13, 10]
+      };
+      function detect(b) {
+        if (_eq(b, 0, SIG.sevenzip)) return "7z";
+        if (_eq(b, 0, SIG.rar5)) return "rar";
+        if (_eq(b, 0, SIG.rar4)) return "rar";
+        if (_eq(b, 0, SIG.ole)) return "office";
+        if (_eq(b, 0, SIG.hccapx)) return "wpa";
+        if (_eq(b, 0, SIG.pcapng) || _eq(b, 0, SIG.pcap_le) || _eq(b, 0, SIG.pcap_be)) return "wpa";
+        if (_eq(b, 0, SIG.zipc)) return "zip";
+        return null;
+      }
+      function _zipCentralDir(b) {
+        var min = Math.max(0, b.length - 22 - 65535), i, eocd = -1;
+        for (i = b.length - 22; i >= min; i--) if (b[i] === 80 && b[i + 1] === 75 && b[i + 2] === 5 && b[i + 3] === 6) {
+          eocd = i;
+          break;
+        }
+        if (eocd < 0) return null;
+        var count = _u16(b, eocd + 10), cdOff = _u32(b, eocd + 16), p = cdOff, entries = [], e;
+        for (e = 0; e < count && p + 46 <= b.length; e++) {
+          if (!(b[p] === 80 && b[p + 1] === 75 && b[p + 2] === 1 && b[p + 3] === 2)) break;
+          var verNeed = _u16(b, p + 6), flags = _u16(b, p + 8), method = _u16(b, p + 10), time = _u16(b, p + 12), crc = _u32(b, p + 16);
+          var csize = _u32(b, p + 20), usize = _u32(b, p + 24);
+          var fnLen = _u16(b, p + 28), exLen = _u16(b, p + 30), cmLen = _u16(b, p + 32);
+          var lho = _u32(b, p + 42), name = _ascii(b, p + 46, fnLen);
+          entries.push({ verNeed, flags, method, time, crc, csize, usize, lho, name });
+          p += 46 + fnLen + exLen + cmLen;
+        }
+        return entries;
+      }
+      function _localDataOffset(b, lho) {
+        if (!(b[lho] === 80 && b[lho + 1] === 75 && b[lho + 2] === 3 && b[lho + 3] === 4)) return -1;
+        return lho + 30 + _u16(b, lho + 26) + _u16(b, lho + 28);
+      }
+      function _aesExtra(b, exStart, exLen) {
+        var p = exStart, end = exStart + exLen;
+        while (p + 4 <= end) {
+          var id = _u16(b, p), sz = _u16(b, p + 2);
+          if (id === 39169) return { strength: b[p + 8], method: _u16(b, p + 9) };
+          p += 4 + sz;
+        }
+        return null;
+      }
+      function extractZip(b) {
+        var entries = _zipCentralDir(b), out = [], i;
+        if (!entries) throw new Error("zip: no central directory found");
+        for (i = 0; i < entries.length; i++) {
+          var en = entries[i];
+          if (!(en.flags & 1) && en.method !== 99) continue;
+          var dataOff = _localDataOffset(b, en.lho);
+          if (dataOff < 0) continue;
+          if (en.method === 99) {
+            var lex = [en.lho + 30 + _u16(b, en.lho + 26), _u16(b, en.lho + 28)];
+            var aes = _aesExtra(b, lex[0], lex[1]);
+            if (!aes) continue;
+            var saltLen = aes.strength === 1 ? 8 : aes.strength === 2 ? 12 : 16;
+            var csize = en.csize, encLen = csize - saltLen - 2 - 10;
+            if (encLen < 0) continue;
+            var salt = _hex(b, dataOff, saltLen);
+            var pv = _hex(b, dataOff + saltLen, 2);
+            var ct = _hex(b, dataOff + saltLen + 2, encLen);
+            var auth = _hex(b, dataOff + saltLen + 2 + encLen, 10);
+            out.push({
+              type: "zip",
+              mode: 13600,
+              name: "WinZip",
+              file: en.name,
+              hash: "$zip2$*0*" + aes.strength + "*0*" + salt + "*" + pv + "*" + encLen + "*" + ct + "*" + auth + "*$/zip2$"
+            });
+          } else {
+            if (en.method !== 0 && en.method !== 8) continue;
+            var cl = en.csize;
+            if (cl < 13 || dataOff + cl > b.length) continue;
+            var da = _hex(b, dataOff, cl);
+            var hx2 = function(v) {
+              var s = (v & 255).toString(16);
+              return s.length < 2 ? "0" + s : s;
+            };
+            var streamed = (en.flags & 8) !== 0;
+            var cs = streamed ? hx2(en.time >> 8) + hx2(en.time) : hx2(en.crc >>> 24) + hx2(en.crc >>> 16);
+            var tc = hx2(en.time >> 8) + hx2(en.time);
+            var B = en.verNeed >= 20 ? 1 : 2;
+            var clHex = cl.toString(16), ulHex = (en.usize >>> 0).toString(16), crcHex = (en.crc >>> 0).toString(16);
+            out.push({
+              type: "zip",
+              mode: en.method === 8 ? 17200 : 17210,
+              name: "PKZIP/ZipCrypto",
+              file: en.name,
+              hash: "$pkzip2$1*" + B + "*2*0*" + clHex + "*" + ulHex + "*" + crcHex + "*0*0*" + en.method + "*" + clHex + "*" + cs + "*" + tc + "*" + da + "*$/pkzip2$"
+            });
+          }
+        }
+        if (!out.length) throw new Error("zip: no encrypted entries found");
+        return out;
+      }
+      function _hccapxTo22000(b, o) {
+        var mp = b[o + 8], essidLen = b[o + 9];
+        var essid = _hex(b, o + 10, essidLen);
+        var keyver = b[o + 42], mic = _hex(b, o + 43, 16);
+        var macAp = _hex(b, o + 59, 6), nonceAp = _hex(b, o + 65, 32);
+        var macSta = _hex(b, o + 97, 6);
+        var eapolLen = b[o + 135] | b[o + 136] << 8, eapol = _hex(b, o + 137, eapolLen);
+        var mph = (mp & 255).toString(16);
+        if (mph.length < 2) mph = "0" + mph;
+        return {
+          type: "wpa",
+          mode: 22e3,
+          name: "WPA EAPOL (from hccapx)",
+          file: null,
+          keyver,
+          hash: "WPA*02*" + mic + "*" + macAp + "*" + macSta + "*" + essid + "*" + nonceAp + "*" + eapol + "*" + mph
+        };
+      }
+      function extractWpa(b, text) {
+        var out = [], i;
+        if (text != null) {
+          var lines = text.split(/\r?\n/);
+          for (i = 0; i < lines.length; i++) {
+            var ln = lines[i].trim();
+            if (/^WPA\*(0[12])\*/.test(ln)) out.push({ type: "wpa", mode: 22e3, name: "WPA (passthrough)", file: null, hash: ln });
+            else if (/^[0-9a-fA-F]{32}[:*][0-9a-fA-F]{12}[:*][0-9a-fA-F]{12}[:*][0-9a-fA-F]+$/.test(ln)) {
+              var pp = ln.split(/[:*]/);
+              out.push({ type: "wpa", mode: 22e3, name: "WPA PMKID", file: null, hash: "WPA*01*" + pp[0] + "*" + pp[1] + "*" + pp[2] + "*" + pp[3] + "***" });
+            } else if (/^[0-9a-fA-F]{200,}$/.test(ln) && ln.slice(0, 8).toLowerCase() === "48435058") out.push(_hccapxTo22000(u._hexToBytes(ln), 0));
+          }
+          if (out.length) return out;
+          throw new Error("wpa: no WPA hash lines found in text");
+        }
+        if (_eq(b, 0, SIG.hccapx)) {
+          for (i = 0; i + 4 <= b.length && _eq(b, i, SIG.hccapx); i += 393) out.push(_hccapxTo22000(b, i));
+          if (out.length) return out;
+        }
+        throw new Error("wpa: pcap/pcapng parsing not yet implemented \u2014 convert with hcxpcapngtool, or pass a .hccapx / .hc22000");
+      }
+      var _lz = require_lzma();
+      function _sl(b, o, n) {
+        var a = [], i;
+        for (i = 0; i < n; i++) a.push(b[o + i]);
+        return a;
+      }
+      function _Rd(b, p, end) {
+        this.b = b;
+        this.p = p;
+        this.end = end == null ? b.length : end;
+      }
+      _Rd.prototype.u8 = function() {
+        return this.b[this.p++];
+      };
+      _Rd.prototype.take = function(n) {
+        var o = this.p;
+        this.p += n;
+        return o;
+      };
+      _Rd.prototype.num = function() {
+        var first = this.b[this.p++], mask = 128, val = 0, i;
+        for (i = 0; i < 8; i++) {
+          if ((first & mask) === 0) {
+            val += (first & mask - 1) * Math.pow(2, 8 * i);
+            break;
+          }
+          val += this.b[this.p++] * Math.pow(2, 8 * i);
+          mask >>= 1;
+        }
+        return val;
+      };
+      function _7zDigests(rd, count, set) {
+        var all = rd.u8(), def = [], i;
+        if (all) {
+          for (i = 0; i < count; i++) def.push(1);
+        } else {
+          var mask = 0, bt = 0;
+          for (i = 0; i < count; i++) {
+            if (mask === 0) {
+              bt = rd.u8();
+              mask = 128;
+            }
+            def.push(bt & mask ? 1 : 0);
+            mask >>= 1;
+          }
+        }
+        for (i = 0; i < count; i++) if (def[i]) {
+          var o = rd.take(4);
+          set(i, (rd.b[o] | rd.b[o + 1] << 8 | rd.b[o + 2] << 16 | rd.b[o + 3] << 24) >>> 0);
+        }
+      }
+      function _7zFolder(rd) {
+        var nc = rd.num(), coders = [], tin = 0, tout = 0, i;
+        for (i = 0; i < nc; i++) {
+          var flag = rd.u8(), idSize = flag & 15, ido = rd.take(idSize);
+          var nin = 1, nout = 1;
+          if (flag & 16) {
+            nin = rd.num();
+            nout = rd.num();
+          }
+          var props = null;
+          if (flag & 32) {
+            var ps = rd.num();
+            props = _sl(rd.b, rd.take(ps), ps);
+          }
+          coders.push({ id: _hex(rd.b, ido, idSize), nin, nout, props, outBase: tout });
+          tin += nin;
+          tout += nout;
+        }
+        var nbind = tout - 1, bind = [];
+        for (i = 0; i < nbind; i++) bind.push({ inx: rd.num(), outx: rd.num() });
+        var npack = tin - nbind, packed = [];
+        if (npack === 1) {
+          for (i = 0; i < tin; i++) {
+            var used = false, j;
+            for (j = 0; j < bind.length; j++) if (bind[j].inx === i) used = true;
+            if (!used) {
+              packed.push(i);
+              break;
+            }
+          }
+        } else for (i = 0; i < npack; i++) packed.push(rd.num());
+        return { coders, bind, packed, tout, sizes: [] };
+      }
+      function _7zStreamsInfo(rd) {
+        var info = { packPos: 0, packSizes: [], folders: [] }, id = rd.u8(), i, t;
+        if (id === 6) {
+          info.packPos = rd.num();
+          var n = rd.num();
+          t = rd.u8();
+          if (t === 9) {
+            for (i = 0; i < n; i++) info.packSizes.push(rd.num());
+            t = rd.u8();
+          }
+          if (t === 10) {
+            _7zDigests(rd, n, function() {
+            });
+            t = rd.u8();
+          }
+          id = rd.u8();
+        }
+        if (id === 7) {
+          rd.u8();
+          var nf = rd.num();
+          rd.u8();
+          for (i = 0; i < nf; i++) info.folders.push(_7zFolder(rd));
+          rd.u8();
+          for (i = 0; i < nf; i++) {
+            var f = info.folders[i];
+            for (var j = 0; j < f.tout; j++) f.sizes.push(rd.num());
+          }
+          t = rd.u8();
+          if (t === 10) {
+            _7zDigests(rd, nf, function(k, c) {
+              info.folders[k].crc = c;
+            });
+            t = rd.u8();
+          }
+          id = rd.u8();
+        }
+        if (id === 8) {
+          t = rd.u8();
+          var nu = [];
+          for (i = 0; i < info.folders.length; i++) nu.push(1);
+          if (t === 13) {
+            for (i = 0; i < info.folders.length; i++) nu[i] = rd.num();
+            t = rd.u8();
+          }
+          if (t === 9) {
+            for (i = 0; i < info.folders.length; i++) for (var s = 0; s < nu[i] - 1; s++) rd.num();
+            t = rd.u8();
+          }
+          if (t === 10) {
+            var need = 0;
+            for (i = 0; i < info.folders.length; i++) need += info.folders[i].crc == null ? nu[i] : 0;
+            _7zDigests(rd, need, function(k, c) {
+              if (info.folders[k]) info.folders[k].crc = c;
+            });
+            t = rd.u8();
+          }
+          id = rd.u8();
+        }
+        return info;
+      }
+      function _7zAesProps(p) {
+        var b0 = p[0], cost = b0 & 63, salt = [], iv = [];
+        if (b0 & 192) {
+          var b1 = p[1], ss = (b0 >> 7 & 1) + (b1 >> 4), is = (b0 >> 6 & 1) + (b1 & 15), o = 2;
+          salt = p.slice(o, o + ss);
+          iv = p.slice(o + ss, o + ss + is);
+        }
+        return { cost, salt, iv };
+      }
+      var _7Z_CODEC = { "00": [0, null], "21": [2, 1], "030101": [1, 5], "040108": [7, null] };
+      function _7zReadHeader(b) {
+        var nho = _u64(b, 12), nhs = _u64(b, 20), hoff = 32 + nho, rd = new _Rd(b, hoff, hoff + nhs);
+        var id = rd.u8();
+        if (id === 23) {
+          var si = _7zStreamsInfo(rd), fo = si.folders[0], packOff = 32 + si.packPos;
+          var comp = _sl(b, packOff, si.packSizes[0]), outSize = fo.sizes[fo.sizes.length - 1], c0 = fo.coders[0], plain;
+          if (c0.id === "00") plain = comp;
+          else if (c0.id === "030101") plain = _lz.lzmaDecode(comp, c0.props, outSize);
+          else if (c0.id === "21") plain = _lz.lzma2Decode(comp, c0.props ? c0.props[0] : 0, outSize);
+          else throw new Error("7z: unsupported header codec " + c0.id);
+          rd = new _Rd(Uint8Array.from(plain), 0);
+          id = rd.u8();
+        }
+        if (id !== 1) throw new Error("7z: bad header id 0x" + id.toString(16));
+        var pid = rd.u8();
+        if (pid === 2) throw new Error("7z: archive properties not supported");
+        if (pid !== 4) throw new Error("7z: expected MainStreamsInfo, got 0x" + pid.toString(16));
+        return { b, info: _7zStreamsInfo(rd) };
+      }
+      function extract7z(b) {
+        var h = _7zReadHeader(b), info = h.info, out = [], fi;
+        for (fi = 0; fi < info.folders.length; fi++) {
+          var f = info.folders[fi], aes = null, aesOut = -1, comp = null, k;
+          for (k = 0; k < f.coders.length; k++) {
+            if (f.coders[k].id === "06f10701") {
+              aes = _7zAesProps(f.coders[k].props);
+              aesOut = f.coders[k].outBase;
+            } else if (_7Z_CODEC[f.coders[k].id]) comp = f.coders[k];
+          }
+          if (!aes || !comp) continue;
+          var packStart = 0, pf;
+          for (pf = 0; pf < fi; pf++) packStart += info.packSizes[pf] || 0;
+          var dataOff = 32 + info.packPos + packStart, dataLen = info.packSizes[fi];
+          var finalOut = -1, oi;
+          for (oi = 0; oi < f.tout; oi++) {
+            var bound = false, bj;
+            for (bj = 0; bj < f.bind.length; bj++) if (f.bind[bj].outx === oi) bound = true;
+            if (!bound) finalOut = oi;
+          }
+          var codec = _7Z_CODEC[comp.id], dataType = codec[0], attrLen = codec[1];
+          var crcLen = f.sizes[finalOut], aesOutSize = f.sizes[aesOut];
+          var hash = "$7z$" + dataType + "$" + aes.cost + "$" + aes.salt.length + "$" + _bytesToHex(aes.salt) + "$" + aes.iv.length + "$" + _bytesToHex(aes.iv) + "$" + (f.crc >>> 0) + "$" + dataLen + "$" + aesOutSize + "$" + _hex(b, dataOff, dataLen);
+          if (dataType !== 0) hash += "$" + crcLen + "$" + _bytesToHex(comp.props ? comp.props.slice(0, attrLen == null ? comp.props.length : attrLen) : []);
+          out.push({ type: "7z", mode: 11600, name: "7-Zip", file: null, hash });
+        }
+        if (!out.length) throw new Error("7z: no AES-encrypted folder found (header-encrypted archives with -mhe are not supported)");
+        return out;
+      }
+      function _b64(s) {
+        var C = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", out = [], buf = 0, bits = 0, i, c;
+        for (i = 0; i < s.length; i++) {
+          c = C.indexOf(s.charAt(i));
+          if (c < 0) continue;
+          buf = buf << 6 | c;
+          bits += 6;
+          if (bits >= 8) {
+            bits -= 8;
+            out.push(buf >> bits & 255);
+          }
+        }
+        return out;
+      }
+      function _cfbRead(b) {
+        if (!_eq(b, 0, SIG.ole)) throw new Error("office: not an OLE2/CFB file");
+        var secShift = _u16(b, 30), miniShift = _u16(b, 32), secSz = 1 << secShift, miniSz = 1 << miniShift;
+        var firstDir = _u32(b, 48), miniCut = _u32(b, 56), firstMiniFat = _u32(b, 60), firstDifat = _u32(b, 68);
+        var END = 4294967294, FREE = 4294967295, i, k;
+        var secOff = function(s) {
+          return 512 + s * secSz;
+        };
+        var difat = [];
+        for (i = 0; i < 109; i++) {
+          var v = _u32(b, 76 + i * 4);
+          if (v < 4294967290) difat.push(v);
+        }
+        var ds = firstDifat, g = 0;
+        while (ds !== END && ds !== FREE && g++ < 1e5) {
+          var base = secOff(ds), cnt = secSz / 4 - 1;
+          for (i = 0; i < cnt; i++) {
+            var w = _u32(b, base + i * 4);
+            if (w < 4294967290) difat.push(w);
+          }
+          ds = _u32(b, base + cnt * 4);
+        }
+        var fat = [];
+        for (var f = 0; f < difat.length; f++) {
+          var o = secOff(difat[f]);
+          for (i = 0; i < secSz / 4; i++) fat.push(_u32(b, o + i * 4));
+        }
+        var chain = function(start) {
+          var out = [], s = start, gg = 0;
+          while (s !== END && s !== FREE && s < fat.length && gg++ < 1e6) {
+            out.push(s);
+            s = fat[s];
+          }
+          return out;
+        };
+        var readFat = function(start, size) {
+          var secs = chain(start), bytes = [], j;
+          for (j = 0; j < secs.length; j++) {
+            var oo = secOff(secs[j]);
+            for (k = 0; k < secSz && bytes.length < size; k++) bytes.push(b[oo + k]);
+          }
+          return bytes;
+        };
+        var dirBytes = readFat(firstDir, 1 << 30), entries = [], n = Math.floor(dirBytes.length / 128);
+        for (i = 0; i < n; i++) {
+          var eo = i * 128, nl = _u16(dirBytes, eo + 64), name = "";
+          for (k = 0; k + 2 < nl && k < 64; k += 2) name += String.fromCharCode(dirBytes[eo + k] | dirBytes[eo + k + 1] << 8);
+          entries.push({ name, type: dirBytes[eo + 66], start: _u32(dirBytes, eo + 116), size: _u32(dirBytes, eo + 120) + _u32(dirBytes, eo + 124) * 4294967296 });
+        }
+        var root = null;
+        for (i = 0; i < entries.length; i++) if (entries[i].type === 5) root = entries[i];
+        var miniStream = root ? readFat(root.start, root.size) : [];
+        var miniFat = [], mfSecs = chain(firstMiniFat);
+        for (i = 0; i < mfSecs.length; i++) {
+          var mo = secOff(mfSecs[i]);
+          for (k = 0; k < secSz / 4; k++) miniFat.push(_u32(b, mo + k * 4));
+        }
+        var readMini = function(start, size) {
+          var s = start, out = [], gg = 0;
+          while (s !== END && s !== FREE && s < miniFat.length && gg++ < 1e6) {
+            var oo = s * miniSz;
+            for (k = 0; k < miniSz && out.length < size; k++) out.push(miniStream[oo + k]);
+            s = miniFat[s];
+          }
+          return out;
+        };
+        return { entries, read: function(e) {
+          return e.size < miniCut ? readMini(e.start, e.size) : readFat(e.start, e.size);
+        } };
+      }
+      function extractOffice(b) {
+        var cfb = _cfbRead(b), ei = null, i;
+        for (i = 0; i < cfb.entries.length; i++) if (cfb.entries[i].name === "EncryptionInfo") ei = cfb.entries[i];
+        if (!ei) throw new Error("office: no EncryptionInfo stream (file not password-encrypted?)");
+        var info = cfb.read(ei), major = _u16(info, 0), minor = _u16(info, 2);
+        if (major === 4 && minor === 4) {
+          var xml = "";
+          for (i = 8; i < info.length; i++) xml += String.fromCharCode(info[i]);
+          var ekM = /<[a-zA-Z0-9]*:?encryptedKey\b[^>]*>/.exec(xml);
+          var ek = ekM ? ekM[0] : xml;
+          var at = function(nm) {
+            var m = new RegExp(nm + '="([^"]*)"').exec(ek);
+            return m ? m[1] : null;
+          };
+          var spin = at("spinCount"), keyBits = at("keyBits"), saltSize = at("saltSize");
+          var salt = _b64(at("saltValue") || ""), ev = _b64(at("encryptedVerifierHashInput") || ""), eh = _b64(at("encryptedVerifierHashValue") || "");
+          if (!spin || !salt.length) throw new Error("office: could not parse agile EncryptionInfo");
+          return [{
+            type: "office",
+            mode: 9600,
+            name: "MS Office 2013+",
+            file: null,
+            hash: "$office$*2013*" + spin + "*" + keyBits + "*" + saltSize + "*" + _bytesToHex(salt) + "*" + _bytesToHex(ev.slice(0, 16)) + "*" + _bytesToHex(eh.slice(0, 32))
+          }];
+        }
+        var p = 8, hdrSize = _u32(info, p);
+        p += 4;
+        var hdrStart = p, keySize = _u32(info, hdrStart + 16);
+        p += hdrSize;
+        var saltSz = _u32(info, p);
+        p += 4;
+        var salt2 = _sl(info, p, saltSz);
+        p += saltSz;
+        var encVer = _sl(info, p, 16);
+        p += 16;
+        var vhSize = _u32(info, p);
+        p += 4;
+        var encVerHash = _sl(info, p, 32);
+        var yr = major === 4 ? "2010" : "2007", spin2 = major === 4 ? "100000" : "20";
+        return [{
+          type: "office",
+          mode: major === 4 ? 9500 : 9400,
+          name: "MS Office " + yr,
+          file: null,
+          hash: "$office$*" + yr + "*" + spin2 + "*" + (keySize || 128) + "*" + saltSz + "*" + _bytesToHex(salt2) + "*" + _bytesToHex(encVer) + "*" + _bytesToHex(encVerHash)
+        }];
+      }
+      function _vuint(b, o) {
+        var val = 0, sh = 0, i = o;
+        while (i < b.length) {
+          var c = b[i++];
+          val += (c & 127) * Math.pow(2, sh);
+          if (!(c & 128)) break;
+          sh += 7;
+        }
+        return { val, next: i };
+      }
+      function _extractRar5(b) {
+        var p = 8;
+        while (p + 5 < b.length) {
+          var hs = _vuint(b, p + 4);
+          var hStart = hs.next, hEnd = hStart + hs.val, q = hStart;
+          if (hs.val === 0 || hEnd > b.length) break;
+          var ht = _vuint(b, q);
+          q = ht.next;
+          var hf = _vuint(b, q);
+          q = hf.next;
+          var extra = 0, dataSz = 0, t;
+          if (hf.val & 1) {
+            t = _vuint(b, q);
+            extra = t.val;
+            q = t.next;
+          }
+          if (hf.val & 2) {
+            t = _vuint(b, q);
+            dataSz = t.val;
+            q = t.next;
+          }
+          if (ht.val === 2 || ht.val === 3) {
+            var ep = hEnd - extra;
+            while (ep < hEnd) {
+              var fs = _vuint(b, ep), fEnd = fs.next + fs.val, ftt = _vuint(b, fs.next);
+              if (ftt.val === 1) {
+                var r = ftt.next;
+                r = _vuint(b, r).next;
+                var flg = _vuint(b, r);
+                r = flg.next;
+                var lg2 = b[r];
+                r += 1;
+                var salt = _hex(b, r, 16);
+                r += 16;
+                var iv = _hex(b, r, 16);
+                r += 16;
+                var psw = _hex(b, r, 8);
+                if (!(flg.val & 1)) throw new Error("rar5: archive has no password check (PSWCHECK off) \u2014 unsupported");
+                return [{ type: "rar", mode: 13e3, name: "RAR5", file: null, hash: "$rar5$16$" + salt + "$" + lg2 + "$" + iv + "$8$" + psw }];
+              }
+              ep = fEnd;
+            }
+          }
+          p = hEnd + dataSz;
+        }
+        throw new Error("rar5: no FHEXTRA_CRYPT record found (archive not encrypted, or -p with PSWCHECK off)");
+      }
+      function extractRar(b) {
+        if (_eq(b, 0, SIG.rar5)) return _extractRar5(b);
+        if (!_eq(b, 0, SIG.rar4)) throw new Error("rar: not a RAR archive");
+        var flags = _u16(b, 10);
+        if (b[9] === 115 && flags & 128) {
+          if (b.length < 24) throw new Error("rar3: file too short");
+          return [{
+            type: "rar",
+            mode: 12500,
+            name: "RAR3 (-hp)",
+            file: null,
+            hash: "$RAR3$*0*" + _hex(b, b.length - 24, 8) + "*" + _hex(b, b.length - 16, 16)
+          }];
+        }
+        throw new Error("rar3: only -hp (header-encrypted) archives are supported; use `rar a -hp`, or RAR5");
+      }
+      var HINTS = {
+        zip: "zip",
+        winzip: "zip",
+        pkzip: "zip",
+        "7z": "7z",
+        sevenzip: "7z",
+        "7zip": "7z",
+        rar: "rar",
+        rar3: "rar",
+        rar5: "rar",
+        office: "office",
+        docx: "office",
+        doc: "office",
+        xlsx: "office",
+        ooxml: "office",
+        wpa: "wpa",
+        wifi: "wpa",
+        hccapx: "wpa",
+        pmkid: "wpa",
+        pcap: "wpa"
+      };
+      var RUN = { zip: extractZip, "7z": extract7z, rar: extractRar, office: extractOffice, wpa: extractWpa };
+      function extract2(input, typeHint) {
+        if (typeof input === "string" && !/[\x00]/.test(input) && /WPA\*|:/.test(input) && !/^\$/.test(input)) {
+          var fmtT = typeHint ? HINTS[String(typeHint).toLowerCase()] : "wpa";
+          if (fmtT === "wpa") return extractWpa(null, input);
+        }
+        var b = _toU8(input);
+        if (typeHint) {
+          var fmt = HINTS[String(typeHint).toLowerCase()];
+          if (!fmt) throw new Error('extract: unknown type "' + typeHint + '" (try zip/7z/rar/office/wpa)');
+          return RUN[fmt](b);
+        }
+        var d = detect(b);
+        if (!d) throw new Error("extract: unrecognized file format (magic " + _hex(b, 0, Math.min(8, b.length)) + ")");
+        return RUN[d](b);
+      }
+      module.exports = {
+        extract: extract2,
+        detect,
+        extractZip,
+        extract7z,
+        extractRar,
+        extractOffice,
+        extractWpa,
+        _toU8
+      };
+    }
+  });
+
   // index.js
-  var crack_js_exports = {};
-  __export(crack_js_exports, {
+  var app_exports = {};
+  __export(app_exports, {
     availableHashTypes: () => availableHashTypes,
+    detectFileType: () => detectFileType,
+    extract: () => extract,
     generatableModes: () => generatableModes,
     generateHash: () => generateHash,
     getExample: () => getExample,
@@ -14005,6 +15319,12 @@ var crack = (() => {
   var verifyRar5 = _rar.verifyRar5;
   var verifyRar3hp = _rar.verifyRar3hp;
   var verifyRar3p = _rar.verifyRar3p;
+  var _zip = require_zip();
+  var verifyWinzipAes = _zip.verifyWinzipAes;
+  var verifySecurezip = _zip.verifySecurezip;
+  var verifyPkzip = _zip.verifyPkzip;
+  var verify7z = require_sevenzip().verify7z;
+  var _extract = require_extract();
   function _sb(s) {
     var b = [];
     for (var i = 0; i < s.length; i++) b.push(s.charCodeAt(i) & 255);
@@ -15097,6 +16417,78 @@ var crack = (() => {
       validate: (h) => /^\$rar5\$16\$[0-9a-fA-F]+\$\d+\$[0-9a-fA-F]+\$8\$[0-9a-fA-F]{16}$/.test(h),
       verify: verifyRar5,
       example: { password: "hashcat", hash: "$rar5$16$38466361001011015181344360681307$15$00000000000000000000000000000000$8$cc7a30583e62676a" }
+    },
+    {
+      modes: [13600],
+      names: ["winzip"],
+      isFast: false,
+      validate: (h) => /^\$zip2\$\*\d+\*[123]\*\d+\*[0-9a-fA-F]*\*[0-9a-fA-F]*\*\d+\*[0-9a-fA-F]*\*[0-9a-fA-F]+\*\$\/zip2\$$/.test(h),
+      verify: verifyWinzipAes,
+      example: { password: "hashcat", hash: "$zip2$*0*1*0*0675369741458183*5dc5*0**36b85538918416712640*$/zip2$" }
+    },
+    {
+      modes: [23001],
+      names: ["securezip-aes128"],
+      isFast: false,
+      validate: (h) => /^\$zip3\$\*0\*1\*128\*0\*[0-9a-fA-F]+\*[0-9a-fA-F]+\*0\*0\*0\*/.test(h),
+      verify: verifySecurezip,
+      example: { password: "hashcat", hash: "$zip3$*0*1*128*0*b4630625c92b6e7848f6fd86*df2f62611b3d02d2c7e05a48dad57c7d93b0bac1362261ab533807afb69db856676aa6e350320130b5cbf27c55a48c0f75739654ac312f1cf5c37149557fc88a92c7e3dde8d23edd2b839036e88092a708b7e818bf1b6de92f0efb5cce184cceb11db6b3ca0527d0bdf1f1137ee6660d9890928cd80542ac1f439515519147c14d965b5ba107c6227f971e3e115170bf*0*0*0*file.txt" }
+    },
+    {
+      modes: [23002],
+      names: ["securezip-aes192"],
+      isFast: false,
+      validate: (h) => /^\$zip3\$\*0\*1\*192\*0\*[0-9a-fA-F]+\*[0-9a-fA-F]+\*0\*0\*0\*/.test(h),
+      verify: verifySecurezip,
+      example: { password: "hashcat", hash: "$zip3$*0*1*192*0*53ff2de8c280778e1e0ab997*603eb37dbab9ea109e2c405e37d8cae1ec89e1e0d0b9ce5bf55d1b571c343b6a3df35fe381c30249cb0738a9b956ba8e52dfc5552894296300446a771032776c811ff8a71d9bb3c4d6c37016c027e41fea2d157d5b0ce17804b1d7c1606b7c1121d37851bd705e001f2cd755bbf305966d129a17c1d48ff8e87cfa41f479090cd456527db7d1d43f9020ad8e73f851a5*0*0*0*file.txt" }
+    },
+    {
+      modes: [23003],
+      names: ["securezip-aes256"],
+      isFast: false,
+      validate: (h) => /^\$zip3\$\*0\*1\*256\*0\*[0-9a-fA-F]+\*[0-9a-fA-F]+\*0\*0\*0\*/.test(h),
+      verify: verifySecurezip,
+      example: { password: "hashcat", hash: "$zip3$*0*1*256*0*39bff47df6152a0214d7a967*65ff418ffb3b1198cccdef0327c03750f328d6dd5287e00e4c467f33b92a6ef40a74bb11b5afad61a6c3c9b279d8bd7961e96af7b470c36fc186fd3cfe059107021c9dea0cf206692f727eeca71f18f5b0b6ee1f702b648bba01aa21c7b7f3f0f7d547838aad46868155a04214f22feef7b31d7a15e1abe6dba5e569c62ee640783bb4a54054c2c69e93ece9f1a2af9d*0*0*0*file.txt" }
+    },
+    {
+      modes: [17210],
+      names: ["pkzip-uncompressed"],
+      isFast: false,
+      validate: (h) => _zip.validatePkzip(h, 0),
+      verify: verifyPkzip,
+      example: { password: "hashcat", hash: "$pkzip2$1*1*2*0*1d1*1c5*eda7a8de*0*28*0*1d1*eda7*5096*1dea673da43d9fc7e2be1a1f4f664269fceb6cb88723a97408ae1fe07f774d31d1442ea8485081e63f919851ca0b7588d5e3442317fff19fe547a4ef97492ed75417c427eea3c4e146e16c100a2f8b6abd7e5988dc967e5a0e51f641401605d673630ea52ebb04da4b388489901656532c9aa474ca090dbac7cf8a21428d57b42a71da5f3d83fed927361e5d385ca8e480a6d42dea5b4bf497d3a24e79fc7be37c8d1721238cbe9e1ea3ae1eb91fc02aabdf33070d718d5105b70b3d7f3d2c28b3edd822e89a5abc0c8fee117c7fbfbfd4b4c8e130977b75cb0b1da080bfe1c0859e6483c42f459c8069d45a76220e046e6c2a2417392fd87e4aa4a2559eaab3baf78a77a1b94d8c8af16a977b4bb45e3da211838ad044f209428dba82666bf3d54d4eed82c64a9b3444a44746b9e398d0516a2596d84243b4a1d7e87d9843f38e45b6be67fd980107f3ad7b8453d87300e6c51ac9f5e3f6c3b702654440c543b1d808b62f7a313a83b31a6faaeedc2620de7057cd0df80f70346fe2d4dccc318f0b5ed128bcf0643e63d754bb05f53afb2b0fa90b34b538b2ad3648209dff587df4fa18698e4fa6d858ad44aa55d2bba3b08dfdedd3e28b8b7caf394d5d9d95e452c2ab1c836b9d74538c2f0d24b9b577*$/pkzip2$" }
+    },
+    {
+      modes: [17200],
+      names: ["pkzip-compressed"],
+      isFast: false,
+      validate: (h) => _zip.validatePkzip(h, 8),
+      verify: verifyPkzip,
+      example: { password: "hashcat", hash: "$pkzip2$1*1*2*0*e3*1c5*eda7a8de*0*28*8*e3*eda7*5096*a9fc1f4e951c8fb3031a6f903e5f4e3211c8fdc4671547bf77f6f682afbfcc7475d83898985621a7af9bccd1349d1976500a68c48f630b7f22d7a0955524d768e34868880461335417ddd149c65a917c0eb0a4bf7224e24a1e04cf4ace5eef52205f4452e66ded937db9545f843a68b1e84a2e933cc05fb36d3db90e6c5faf1bee2249fdd06a7307849902a8bb24ec7e8a0886a4544ca47979a9dfeefe034bdfc5bd593904cfe9a5309dd199d337d3183f307c2cb39622549a5b9b8b485b7949a4803f63f67ca427a0640ad3793a519b2476c52198488e3e2e04cac202d624fb7d13c2*$/pkzip2$" }
+    },
+    {
+      modes: [17220],
+      names: ["pkzip-multi-compressed"],
+      isFast: false,
+      validate: (h) => _zip.validatePkzip(h, { multi: true }),
+      verify: verifyPkzip,
+      example: { password: "hashcat", hash: "$pkzip2$3*1*1*0*8*24*a425*8827*d1730095cd829e245df04ebba6c52c0573d49d3bbeab6cb385b7fa8a28dcccd3098bfdd7*1*0*8*24*2a74*882a*51281ac874a60baedc375ca645888d29780e20d4076edd1e7154a99bde982152a736311f*2*0*e3*1c5*eda7a8de*0*29*8*e3*eda7*5096*1455781b59707f5151139e018bdcfeebfc89bc37e372883a7ec0670a5eafc622feb338f9b021b6601a674094898a91beac70e41e675f77702834ca6156111a1bf7361bc9f3715d77dfcdd626634c68354c6f2e5e0a7b1e1ce84a44e632d0f6e36019feeab92fb7eac9dda8df436e287aafece95d042059a1b27d533c5eab62c1c559af220dc432f2eb1a38a70f29e8f3cb5a207704274d1e305d7402180fd47e026522792f5113c52a116d5bb25b67074ffd6f4926b221555234aabddc69775335d592d5c7d22462b75de1259e8342a9ba71cb06223d13c7f51f13be2ad76352c3b8ed*$/pkzip2$" }
+    },
+    {
+      modes: [17225],
+      names: ["pkzip-multi-mixed"],
+      isFast: false,
+      validate: (h) => _zip.validatePkzip(h, { multi: true }),
+      verify: verifyPkzip,
+      example: { password: "hashcat", hash: "$pkzip2$3*1*1*0*0*24*3e2c*3ef8*0619e9d17ff3f994065b99b1fa8aef41c056edf9fa4540919c109742dcb32f797fc90ce0*1*0*8*24*431a*3f26*18e2461c0dbad89bd9cc763067a020c89b5e16195b1ac5fa7fb13bd246d000b6833a2988*2*0*23*17*1e3c1a16*2e4*2f*0*23*1e3c*3f2d*54ea4dbc711026561485bbd191bf300ae24fa0997f3779b688cdad323985f8d3bb8b0c*$/pkzip2$" }
+    },
+    {
+      modes: [11600],
+      names: ["7zip"],
+      isFast: false,
+      validate: (h) => /^\$7z\$\d+\$\d+\$\d+\$[0-9a-fA-F]*\$\d+\$[0-9a-fA-F]+\$\d+\$\d+\$\d+\$[0-9a-fA-F]+/.test(h),
+      verify: verify7z,
+      example: { password: "hashcat", hash: "$7z$0$14$0$$11$33363437353138333138300000000000$2365089182$16$12$d00321533b483f54a523f624a5f63269" }
     },
     {
       modes: [16600],
@@ -17288,6 +18680,8 @@ var crack = (() => {
     return possibleHashTypes;
   }
   var availableHashTypes = HASH_REGISTRY.map((entry) => entry.names[0]);
+  var extract = _extract.extract;
+  var detectFileType = _extract.detect;
   var hashTypes = HASH_REGISTRY.map(function(entry) {
     return {
       mode: entry.modes[0],
@@ -17300,7 +18694,7 @@ var crack = (() => {
       })
     };
   });
-  return __toCommonJS(crack_js_exports);
+  return __toCommonJS(app_exports);
 })();
 /*! Bundled license information:
 
