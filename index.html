@@ -155,7 +155,9 @@
   .cs-tog{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg);border:1px solid var(--border2);border-radius:5px;padding:5px 9px;background:var(--bg);cursor:pointer}
   .cs-tog:hover{border-color:var(--accent)}
   .len-in{width:64px}
-  .space-est{font-size:12px;color:var(--dim);margin-top:8px} .space-est b{color:var(--warn)}
+  .space-est{font-size:12px;color:var(--dim);margin-top:8px} .space-est b{color:var(--warn)} .space-est .err{color:var(--red)}
+  .cs-custom-in{width:104px}
+  .mask-ref{margin-top:9px;font-size:11px;line-height:1.85;color:var(--dim)} .mask-ref b{color:var(--modecol);font-weight:400}
 
   /* tasks */
   .tasks{display:flex;flex-direction:column;gap:10px;margin-top:8px}
@@ -325,7 +327,7 @@
           <!-- BRUTE -->
           <section class="panel" id="panel-brute" role="tabpanel">
             <h2 class="ptitle"><span class="cmd">./brute</span> — crack hashes</h2>
-            <p class="psub">paste target hashes, <b>or drop a file</b> to auto-extract and crack it. run a wordlist, wordlist + rules, pure bruteforce (charset + length), or one of your saved <b>workflows</b>. each task shows live speed and estimated time remaining.</p>
+            <p class="psub">paste target hashes, <b>or drop a file</b> to auto-extract and crack it. run a wordlist, wordlist + rules, pure bruteforce (charset + length), a <b>mask</b> (fix the characters you already know), or one of your saved <b>workflows</b>. each task shows live speed and estimated time remaining.</p>
 
             <div class="drop" id="brute-drop">
               <b>drop an encrypted file</b> to auto-extract its hash &amp; start
@@ -344,6 +346,7 @@
                   <option value="dict">wordlist</option>
                   <option value="rules">wordlist + rules</option>
                   <option value="brute">bruteforce (charset+length)</option>
+                  <option value="mask">mask (known chars + ?l ?d …)</option>
                   <option value="workflow">workflow</option>
                 </select>
               </label>
@@ -393,6 +396,20 @@ r</textarea>
                 <label class="field">max len <input type="number" id="bf-max" class="len-in" value="4" min="1" max="12"></label>
               </div>
               <div class="space-est" id="bf-est"></div>
+            </div>
+
+            <!-- mask (hashcat -a 3) -->
+            <div class="cfgbox hidden" id="cfg-mask">
+              <div class="hint" style="margin-bottom:8px">mask — keep the characters you know as literals, brute-force the rest with placeholders (hashcat <code>-a 3</code>)</div>
+              <input type="text" id="mask-input" value="?l?l?l?l?l?l" placeholder="e.g. fkaskgr?l?l?l?l?l?l?l?l" style="width:100%;max-width:540px;box-sizing:border-box">
+              <div class="cfg-row" style="margin-top:12px">
+                <label class="field">?1 <input type="text" id="mask-c1" class="cs-custom-in" placeholder="e.g. ?l?d"></label>
+                <label class="field">?2 <input type="text" id="mask-c2" class="cs-custom-in" placeholder="custom"></label>
+                <label class="field">?3 <input type="text" id="mask-c3" class="cs-custom-in" placeholder="custom"></label>
+                <label class="field">?4 <input type="text" id="mask-c4" class="cs-custom-in" placeholder="custom"></label>
+              </div>
+              <div class="space-est" id="mask-est"></div>
+              <div class="mask-ref"><b>?l</b> a-z · <b>?u</b> A-Z · <b>?d</b> 0-9 · <b>?s</b> symbols · <b>?a</b> ?l?u?d?s · <b>?h</b> 0-9a-f · <b>?H</b> 0-9A-F · <b>?b</b> 00-ff · <b>?1</b>–<b>?4</b> custom · <b>??</b> literal ?</div>
             </div>
 
             <!-- workflow picker -->
@@ -744,9 +761,11 @@ r</textarea>
     $('cfg-wl').classList.toggle('hidden', !(t==='dict'||t==='rules'));
     $('cfg-rules').classList.toggle('hidden', t!=='rules');
     $('cfg-brute').classList.toggle('hidden', t!=='brute');
+    $('cfg-mask').classList.toggle('hidden', t!=='mask');
     $('cfg-workflow').classList.toggle('hidden', t!=='workflow');
     if(t==='workflow') refreshWfSelect();
     if(t==='brute') updateEst();
+    if(t==='mask') updateMaskEst();
   }
   $('attack-type').addEventListener('change', showCfg);
 
@@ -765,6 +784,53 @@ r</textarea>
   Array.prototype.forEach.call($('charset-toggles').querySelectorAll('input'), function(cb){ cb.addEventListener('change', updateEst); });
   $('cs-custom').addEventListener('input', updateEst);
   $('bf-min').addEventListener('input', updateEst); $('bf-max').addEventListener('input', updateEst);
+
+  // ---- mask attack (hashcat -a 3): literals you know + ?l ?u ?d ?s ?a ?h ?H ?b + custom ?1-?4 ----
+  function _range(a,b){ var s=''; for(var c=a;c<=b;c++) s+=String.fromCharCode(c); return s; }
+  var MASK_CS={ l:_range(97,122), u:_range(65,90), d:_range(48,57), h:'0123456789abcdef', H:'0123456789ABCDEF',
+    s:_range(32,47)+_range(58,64)+_range(91,96)+_range(123,126), b:_range(0,255) };
+  MASK_CS.a=MASK_CS.l+MASK_CS.u+MASK_CS.d+MASK_CS.s;   // hashcat ?a = ?l?u?d?s
+  function _dedup(str){ var seen=Object.create(null), out=''; for(var i=0;i<str.length;i++){ if(seen[str[i]]===undefined){ seen[str[i]]=1; out+=str[i]; } } return out; }
+  function maskCustoms(){ return {1:$('mask-c1').value, 2:$('mask-c2').value, 3:$('mask-c3').value, 4:$('mask-c4').value}; }
+  // mask string -> array of per-position charset strings (a literal char = a 1-char charset); {error} on a bad token.
+  function parseMask(mask, customs){
+    mask=String(mask||'');
+    function base(t){ return (t && 'luadshHb'.indexOf(t)>=0) ? MASK_CS[t] : null; }
+    var resolved={};
+    function resolveCustom(n, stack){                    // expand ?l/?d/… and ?1-?4 refs inside a -N custom set
+      if(resolved[n]!==undefined) return resolved[n];
+      var def=customs && customs[n]; if(def==null || def==='') return null;
+      stack=stack||{}; if(stack[n]) return null; stack[n]=1;
+      var out='', i=0;
+      while(i<def.length){ var ch=def.charAt(i);
+        if(ch==='?'){ var nx=def.charAt(i+1);
+          if(nx==='?'){ out+='?'; i+=2; continue; }
+          if(nx>='1'&&nx<='4'){ var rr=resolveCustom(+nx, stack); if(rr==null) return null; out+=rr; i+=2; continue; }
+          var bb=base(nx); if(bb==null) return null; out+=bb; i+=2; continue; }
+        out+=ch; i++; }
+      out=_dedup(out); resolved[n]=out; return out;
+    }
+    var positions=[], i=0;
+    while(i<mask.length){ var ch=mask.charAt(i);
+      if(ch==='?'){ var nx=mask.charAt(i+1);
+        if(nx===''){ return {error:'mask ends with a lone "?" — write "??" for a literal question mark'}; }
+        if(nx==='?'){ positions.push('?'); i+=2; continue; }
+        if(nx>='1'&&nx<='4'){ var rc=resolveCustom(+nx); if(rc==null || rc==='') return {error:'custom charset ?'+nx+' is empty or undefined — fill the ?'+nx+' box'}; positions.push(rc); i+=2; continue; }
+        var b2=base(nx); if(b2==null) return {error:'unknown mask token "?'+nx+'" — use ?l ?u ?d ?s ?a ?h ?H ?b or ?1-?4'}; positions.push(b2); i+=2; continue; }
+      positions.push(ch); i++; }
+    return {positions:positions};
+  }
+  function maskKeyspace(P){ var t=1; for(var i=0;i<P.length;i++) t*=P[i].length; return P.length?t:0; }
+  function updateMaskEst(){
+    var el=$('mask-est'); if(!el) return;
+    var r=parseMask($('mask-input').value, maskCustoms());
+    if(r.error){ el.innerHTML='<span class="err">'+esc(r.error)+'</span>'; return; }
+    var P=r.positions; if(!P.length){ el.innerHTML='enter a mask, e.g. <b>?l?l?l?l</b>.'; return; }
+    var fixed=0; for(var i=0;i<P.length;i++) if(P[i].length===1) fixed++;
+    el.innerHTML='length <b>'+P.length+'</b> · <b>'+fixed+'</b> fixed / <b>'+(P.length-fixed)+'</b> unknown · search space <b>'+fmtBig(maskKeyspace(P))+'</b> candidates';
+  }
+  $('mask-input').addEventListener('input', updateMaskEst);
+  ['mask-c1','mask-c2','mask-c3','mask-c4'].forEach(function(id){ var e=$(id); if(e) e.addEventListener('input', updateMaskEst); });
 
   function parseRules(txt){ return String(txt||'').split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){return s && s.charAt(0)!=='#'; }); }
   showCfg();
@@ -792,6 +858,7 @@ r</textarea>
       if(st.kind==='dict') return st.words.length;
       if(st.kind==='rules') return st.words.length*st.rules.length;
       if(st.kind==='brute'){ var n=st.charset.length,t=0; for(var L=st.min;L<=st.max;L++) t+=Math.pow(n,L); return t; }
+      if(st.kind==='mask'){ var mp=1; for(var mi=0;mi<st.positions.length;mi++) mp*=st.positions[mi].length; return st.positions.length?mp:0; }
       return 0;
     }
     self.onmessage=function(e){
@@ -815,13 +882,19 @@ r</textarea>
       }
       for(var si=0; si<steps.length && items.length; si++){
         var st=steps[si]; curStep=si;
-        stepLabel=st.kind==='dict'?('wordlist ('+st.words.length.toLocaleString('en-US')+')'):st.kind==='rules'?('rules '+st.rules.length+'× '+st.words.length.toLocaleString('en-US')):('bruteforce '+st.charset.length+'^'+st.min+'‑'+st.max);
+        stepLabel=st.kind==='dict'?('wordlist ('+st.words.length.toLocaleString('en-US')+')'):st.kind==='rules'?('rules '+st.rules.length+'× '+st.words.length.toLocaleString('en-US')):st.kind==='mask'?('mask ('+st.positions.length+' pos)'):('bruteforce '+st.charset.length+'^'+st.min+'‑'+st.max);
         if(st.kind==='dict'){ for(var a=0;a<st.words.length;a++){ if(!tryCand(st.words[a])) break; } }
         else if(st.kind==='rules'){ if(!HR){ self.postMessage({type:'error',message:'hashcat-rules-js not loaded (dist/hashcat-rules.js)'}); return; } outer: for(var b=0;b<st.words.length;b++){ for(var r=0;r<st.rules.length;r++){ var cand=HR.applyRule(st.words[b], st.rules[r]); if(cand===false){ done++; continue; } if(!tryCand(cand)) break outer; } } }
         else if(st.kind==='brute'){ var cs=st.charset.split('');
           for(var L=st.min; L<=st.max && items.length; L++){ var idx=[]; for(var q=0;q<L;q++) idx[q]=0;
             while(true){ var cand=''; for(var p=0;p<L;p++) cand+=cs[idx[p]]; if(!tryCand(cand)) break;
               var pos=L-1; while(pos>=0){ idx[pos]++; if(idx[pos]<cs.length) break; idx[pos]=0; pos--; } if(pos<0) break; }
+          }
+        }
+        else if(st.kind==='mask'){ var MP=st.positions, ML=MP.length;
+          if(ML && items.length){ var mIdx=[]; for(var mq=0;mq<ML;mq++) mIdx[mq]=0;
+            while(true){ var mCand=''; for(var mp=0;mp<ML;mp++) mCand+=MP[mp].charAt(mIdx[mp]); if(!tryCand(mCand)) break;
+              var mPos=ML-1; while(mPos>=0){ mIdx[mPos]++; if(mIdx[mPos]<MP[mPos].length) break; mIdx[mPos]=0; mPos--; } if(mPos<0) break; }
           }
         }
         if(!items.length) break;
@@ -844,15 +917,18 @@ r</textarea>
       return {steps:[{kind:'rules',words:words,rules:rules}], label:'wordlist + '+rules.length+' rules'}; }
     if(t==='brute'){ var cs=buildCharset(); if(!cs) return {err:'pick a charset'}; var mn=parseInt($('bf-min').value,10)||1, mx=parseInt($('bf-max').value,10)||1; if(mx<mn) mx=mn;
       return {steps:[{kind:'brute',charset:cs,min:mn,max:mx}], label:'bruteforce'}; }
+    if(t==='mask'){ var mres=parseMask($('mask-input').value, maskCustoms()); if(mres.error) return {err:mres.error}; if(!mres.positions.length) return {err:'enter a mask, e.g. ?l?l?l?l'};
+      return {steps:[{kind:'mask',positions:mres.positions}], label:'mask '+$('mask-input').value.trim()}; }
     return {err:'unknown attack'};
   }
   function resolveWorkflow(wf){
     return wf.steps.map(function(st){
       if(st.kind==='brute') return {kind:'brute',charset:st.charset,min:st.min,max:st.max};
+      if(st.kind==='mask'){ var mr=parseMask(st.mask,{1:st.c1,2:st.c2,3:st.c3,4:st.c4}); return {kind:'mask',positions:(mr.positions||[])}; }
       var words=wordsFromNames(st.wlNames);
       if(st.kind==='dict') return {kind:'dict',words:words};
       return {kind:'rules',words:words,rules:parseRules(st.rules)};
-    }).filter(function(s){ return s.kind==='brute' ? s.charset.length : s.words.length; });
+    }).filter(function(s){ return s.kind==='brute' ? s.charset.length : s.kind==='mask' ? (s.positions&&s.positions.length) : s.words.length; });
   }
 
   // ================= launch + task cards =================
@@ -933,7 +1009,7 @@ r</textarea>
   function saveWorkflows(){ try{ localStorage.setItem(WF_KEY, JSON.stringify(WORKFLOWS)); }catch(e){} }
   var editSteps=null, editId=null, wfSeq=Date.now(), wfUploadStep=-1;
 
-  function newStep(kind){ if(kind==='brute') return {kind:'brute',charset:'abcdefghijklmnopqrstuvwxyz0123456789',min:1,max:4}; return {kind:kind,wlNames:['common passwords'],rules:':\nc\n$1'}; }
+  function newStep(kind){ if(kind==='brute') return {kind:'brute',charset:'abcdefghijklmnopqrstuvwxyz0123456789',min:1,max:4}; if(kind==='mask') return {kind:'mask',mask:'?l?l?l?l?l?l',c1:'',c2:'',c3:'',c4:''}; return {kind:kind,wlNames:['common passwords'],rules:':\nc\n$1'}; }
   function startEdit(wf){
     editId = wf?wf.id:null;
     editSteps = wf ? JSON.parse(JSON.stringify(wf.steps)) : [newStep('dict')];
@@ -973,13 +1049,19 @@ r</textarea>
       if(st.kind==='dict'||st.kind==='rules'){
         body+='<div class="wf-mini" style="margin-bottom:8px">wordlists: '+wlOpts.map(function(nm){ var on=(st.wlNames||[]).indexOf(nm)>=0; return '<label class="wl-item"><input type="checkbox" data-wl-name="'+esc(nm)+'" data-i="'+i+'"'+(on?' checked':'')+'>'+esc(nm)+'</label>'; }).join('')+' <button class="btn ghost sm" data-wl-upload="'+i+'">+ upload</button></div>';
         if(st.kind==='rules') body+='<textarea data-rules="'+i+'" style="min-height:78px" placeholder="one rule per line">'+esc(st.rules||'')+'</textarea>';
+      } else if(st.kind==='mask'){
+        body+='<div class="wf-mini"><label class="field" style="flex:1 1 240px">mask <input type="text" data-mask="'+i+'" value="'+esc(st.mask||'')+'" placeholder="e.g. word?d?d?d" style="min-width:200px;flex:1"></label></div>'+
+          '<div class="wf-mini" style="margin-top:6px"><label class="field">?1 <input type="text" data-mc="1" data-i="'+i+'" value="'+esc(st.c1||'')+'" class="cs-custom-in"></label>'+
+          '<label class="field">?2 <input type="text" data-mc="2" data-i="'+i+'" value="'+esc(st.c2||'')+'" class="cs-custom-in"></label>'+
+          '<label class="field">?3 <input type="text" data-mc="3" data-i="'+i+'" value="'+esc(st.c3||'')+'" class="cs-custom-in"></label>'+
+          '<label class="field">?4 <input type="text" data-mc="4" data-i="'+i+'" value="'+esc(st.c4||'')+'" class="cs-custom-in"></label></div>';
       } else {
         body+='<div class="wf-mini"><label class="field">charset <input type="text" data-cs="'+i+'" value="'+esc(st.charset)+'" style="min-width:220px"></label>'+
           '<label class="field">min <input type="number" data-min="'+i+'" value="'+st.min+'" class="len-in"></label>'+
           '<label class="field">max <input type="number" data-max="'+i+'" value="'+st.max+'" class="len-in"></label></div>';
       }
       return '<div class="wf-step"><div class="wf-step-head"><span class="stepno">step '+(i+1)+'</span>'+
-        '<select data-kind="'+i+'"><option value="dict"'+(st.kind==='dict'?' selected':'')+'>wordlist</option><option value="rules"'+(st.kind==='rules'?' selected':'')+'>wordlist + rules</option><option value="brute"'+(st.kind==='brute'?' selected':'')+'>bruteforce</option></select>'+
+        '<select data-kind="'+i+'"><option value="dict"'+(st.kind==='dict'?' selected':'')+'>wordlist</option><option value="rules"'+(st.kind==='rules'?' selected':'')+'>wordlist + rules</option><option value="brute"'+(st.kind==='brute'?' selected':'')+'>bruteforce</option><option value="mask"'+(st.kind==='mask'?' selected':'')+'>mask</option></select>'+
         '<span class="sp"><button class="btn ghost sm" data-up="'+i+'">↑</button><button class="btn ghost sm" data-down="'+i+'">↓</button><button class="btn ghost sm" data-del="'+i+'">✕</button></span></div>'+body+'</div>';
     }).join('');
     var S=$('wf-steps');
@@ -993,8 +1075,10 @@ r</textarea>
     Array.prototype.forEach.call(S.querySelectorAll('[data-cs]'), function(t){ t.addEventListener('input', function(){ editSteps[+t.getAttribute('data-cs')].charset=t.value; }); });
     Array.prototype.forEach.call(S.querySelectorAll('[data-min]'), function(t){ t.addEventListener('input', function(){ editSteps[+t.getAttribute('data-min')].min=parseInt(t.value,10)||1; }); });
     Array.prototype.forEach.call(S.querySelectorAll('[data-max]'), function(t){ t.addEventListener('input', function(){ editSteps[+t.getAttribute('data-max')].max=parseInt(t.value,10)||1; }); });
+    Array.prototype.forEach.call(S.querySelectorAll('[data-mask]'), function(t){ t.addEventListener('input', function(){ editSteps[+t.getAttribute('data-mask')].mask=t.value; }); });
+    Array.prototype.forEach.call(S.querySelectorAll('[data-mc]'), function(t){ t.addEventListener('input', function(){ editSteps[+t.getAttribute('data-i')]['c'+t.getAttribute('data-mc')]=t.value; }); });
   }
-  function stepSummary(st){ if(st.kind==='brute') return '<span class="step-tag">brute</span> '+esc(st.charset.length+' chars, len '+st.min+'–'+st.max); return '<span class="step-tag">'+(st.kind==='rules'?'wl+rules':'wordlist')+'</span> '+esc((st.wlNames||[]).join(', ')||'—'); }
+  function stepSummary(st){ if(st.kind==='mask') return '<span class="step-tag">mask</span> '+esc(st.mask||'—'); if(st.kind==='brute') return '<span class="step-tag">brute</span> '+esc(st.charset.length+' chars, len '+st.min+'–'+st.max); return '<span class="step-tag">'+(st.kind==='rules'?'wl+rules':'wordlist')+'</span> '+esc((st.wlNames||[]).join(', ')||'—'); }
   function renderWfList(){
     if(!WORKFLOWS.length){ $('wf-list').innerHTML='<div class="empty">no workflows yet — hit [ new workflow ].</div>'; return; }
     $('wf-list').innerHTML=WORKFLOWS.map(function(wf){

@@ -53,6 +53,7 @@ var _zip = require('./src/zip');
 var verifyWinzipAes = _zip.verifyWinzipAes, verifySecurezip = _zip.verifySecurezip, verifyPkzip = _zip.verifyPkzip;
 var verify7z = require('./src/sevenzip').verify7z;
 var _extract = require('./src/extract');
+var _attack = require('./src/attack');
 
 
 
@@ -1300,3 +1301,69 @@ export const hashTypes = HASH_REGISTRY.map(function (entry) {
         generatable: entry.modes.some(function (m) { return _gen.G[m] != null; })
     };
 });
+
+// ---------------------------------------------------------------------------
+// Attack wrappers (hashcat -a 3). The generators below are lazy — a keyspace of
+// billions costs no memory, and crackMask()/crackBruteforce() stop the instant a
+// candidate verifies. See src/attack.js for the mask token reference.
+// ---------------------------------------------------------------------------
+
+// mask -> array of per-position charset strings (throws on a bad token)
+export const parseMask = _attack.parseMask;
+// quick candidate counts for display (Number; may be Infinity for huge spaces)
+export const maskKeyspace = _attack.maskKeyspace;
+export const bruteforceKeyspace = _attack.bruteforceKeyspace;
+// lazy generators of every candidate
+export const maskCandidates = _attack.maskCandidates;
+export const bruteforceCandidates = _attack.bruteforceCandidates;
+
+// ---- distributed cracking (see src/attack.js) ----
+// An attack "spec": {type:'wordlist',words} | {type:'rules',words,rules,apply?} |
+//                   {type:'mask',mask,customs?} | {type:'bruteforce',charset,min,max}
+// keyspace(spec): exact total candidate count as a BigInt (spaces exceed 2^53).
+export const keyspace = _attack.keyspace;
+// candidateAt(spec, index): the index-th candidate (0-based; BigInt|number|string) — random access / resume.
+export const candidateAt = _attack.candidateAt;
+// attackCandidates(spec, {skip, limit}): lazy generator of one keyspace slice (a node's share).
+export const attackCandidates = _attack.candidates;
+// partition(specOrTotal, nodes): cut a keyspace into contiguous [{index, skip, limit}] ranges (BigInts).
+export const partition = _attack.partition;
+
+// Run an iterable of candidates through verifyHash(); return the first password that
+// matches `hash` under `type`, or null once the iterable is exhausted.
+//   opts.onProgress(tried, lastCandidate)  called every opts.progressEvery tries (default 50000)
+function runAttack(candidateIter, hash, type, opts) {
+    opts = opts || {};
+    const every = (typeof opts.progressEvery === 'number' && opts.progressEvery > 0) ? opts.progressEvery : 50000;
+    let n = 0;
+    for (const cand of candidateIter) {
+        n++;
+        if (verifyHash(cand, hash, type)) return cand;
+        if (opts.onProgress && n % every === 0) opts.onProgress(n, cand);
+    }
+    return null;
+}
+
+// One-call attacks. Each returns the matching password, or null. `opts` may carry a
+// keyspace slice { skip, limit } (so a distributed node cracks only its range) plus
+// { onProgress, progressEvery }.
+//   crackMask(hash, 1000, 'fkaskgr?l?l')          // NTLM, mask
+//   crackBruteforce(hash, 0, 'abc…', 1, 4)        // MD5, charset + length
+//   crackWordlist(hash, 100, ['pw1','pw2', …])    // SHA1, wordlist (array)
+export function crackMask(hash, type, mask, customs, opts) {
+    return runAttack(_attack.candidates({ type: 'mask', mask: mask, customs: customs }, opts), hash, type, opts);
+}
+export function crackBruteforce(hash, type, charset, min, max, opts) {
+    return runAttack(_attack.candidates({ type: 'bruteforce', charset: charset, min: min, max: max }, opts), hash, type, opts);
+}
+export function crackWordlist(hash, type, words, opts) {
+    return runAttack(_attack.candidates({ type: 'wordlist', words: words || [] }, opts), hash, type, opts);
+}
+// crackRules(hash, type, ['pw1', …], [':','c','$1', …], applyRule)  — wordlist + rules.
+// The rule engine is intentionally not bundled (it is a UI-only lib), so pass an
+// apply(word, rule) => string — e.g. zzzteph/hashcat-rules-js `applyRule`. Rules run
+// all-rules-per-word (word-major), matching the browser crack tab and hashcat.
+export function crackRules(hash, type, words, rules, apply, opts) {
+    if (typeof apply !== 'function') throw new Error('crackRules: an apply(word, rule) => string function is required (e.g. hashcat-rules-js applyRule)');
+    return runAttack(_attack.candidates({ type: 'rules', words: words || [], rules: rules || [], apply: apply }, opts), hash, type, opts);
+}

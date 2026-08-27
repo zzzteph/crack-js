@@ -15288,10 +15288,347 @@ var crack = (() => {
     }
   });
 
+  // src/attack.js
+  var require_attack = __commonJS({
+    "src/attack.js"(exports, module) {
+      var MASK_TOKENS = "luadshHb";
+      function _range(a, b) {
+        var s = "";
+        for (var c = a; c <= b; c++) s += String.fromCharCode(c);
+        return s;
+      }
+      var MASK_CS = {
+        l: _range(97, 122),
+        // a-z
+        u: _range(65, 90),
+        // A-Z
+        d: _range(48, 57),
+        // 0-9
+        h: "0123456789abcdef",
+        // lower hex
+        H: "0123456789ABCDEF",
+        // upper hex
+        s: _range(32, 47) + _range(58, 64) + _range(91, 96) + _range(123, 126),
+        // hashcat ?s (incl. space)
+        b: _range(0, 255)
+        // every byte
+      };
+      MASK_CS.a = MASK_CS.l + MASK_CS.u + MASK_CS.d + MASK_CS.s;
+      function _dedup(str) {
+        var seen = /* @__PURE__ */ Object.create(null), out = "";
+        for (var i = 0; i < str.length; i++) {
+          if (seen[str[i]] === void 0) {
+            seen[str[i]] = 1;
+            out += str[i];
+          }
+        }
+        return out;
+      }
+      function _normCustoms(c) {
+        var out = {};
+        if (!c) return out;
+        if (Object.prototype.toString.call(c) === "[object Array]") {
+          for (var i = 0; i < c.length && i < 4; i++) out[i + 1] = c[i];
+          return out;
+        }
+        for (var k = 1; k <= 4; k++) if (c[k] != null) out[k] = c[k];
+        return out;
+      }
+      function parseMask2(mask, customs) {
+        mask = String(mask == null ? "" : mask);
+        customs = _normCustoms(customs);
+        function base(t) {
+          return t && MASK_TOKENS.indexOf(t) >= 0 ? MASK_CS[t] : null;
+        }
+        var resolved = {};
+        function resolveCustom(n, stack) {
+          if (resolved[n] !== void 0) return resolved[n];
+          var def = customs[n];
+          if (def == null || def === "") throw new Error("mask: custom charset ?" + n + " is empty or undefined");
+          stack = stack || {};
+          if (stack[n]) throw new Error("mask: custom charset ?" + n + " references itself");
+          stack[n] = 1;
+          var out = "", i2 = 0;
+          while (i2 < def.length) {
+            var ch2 = def.charAt(i2);
+            if (ch2 === "?") {
+              var nx2 = def.charAt(i2 + 1);
+              if (nx2 === "?") {
+                out += "?";
+                i2 += 2;
+                continue;
+              }
+              if (nx2 >= "1" && nx2 <= "4") {
+                out += resolveCustom(+nx2, stack);
+                i2 += 2;
+                continue;
+              }
+              var bb = base(nx2);
+              if (bb == null) throw new Error('mask: unknown token "?' + nx2 + '" in custom charset ?' + n);
+              out += bb;
+              i2 += 2;
+              continue;
+            }
+            out += ch2;
+            i2++;
+          }
+          out = _dedup(out);
+          resolved[n] = out;
+          return out;
+        }
+        var positions = [], i = 0;
+        while (i < mask.length) {
+          var ch = mask.charAt(i);
+          if (ch === "?") {
+            var nx = mask.charAt(i + 1);
+            if (nx === "") throw new Error('mask: ends with a lone "?" (use "??" for a literal ?)');
+            if (nx === "?") {
+              positions.push("?");
+              i += 2;
+              continue;
+            }
+            if (nx >= "1" && nx <= "4") {
+              positions.push(resolveCustom(+nx));
+              i += 2;
+              continue;
+            }
+            var b2 = base(nx);
+            if (b2 == null) throw new Error('mask: unknown token "?' + nx + '" (use ?l ?u ?d ?s ?a ?h ?H ?b or ?1-?4)');
+            positions.push(b2);
+            i += 2;
+            continue;
+          }
+          positions.push(ch);
+          i++;
+        }
+        return positions;
+      }
+      function maskKeyspace2(mask, customs) {
+        var P = parseMask2(mask, customs), t = 1;
+        for (var i = 0; i < P.length; i++) t *= P[i].length;
+        return P.length ? t : 0;
+      }
+      function* _walk(positions) {
+        var L = positions.length;
+        if (!L) return;
+        var idx = new Array(L);
+        for (var q = 0; q < L; q++) idx[q] = 0;
+        while (true) {
+          var s = "";
+          for (var p = 0; p < L; p++) s += positions[p].charAt(idx[p]);
+          yield s;
+          var pos = L - 1;
+          while (pos >= 0) {
+            idx[pos]++;
+            if (idx[pos] < positions[pos].length) break;
+            idx[pos] = 0;
+            pos--;
+          }
+          if (pos < 0) break;
+        }
+      }
+      function maskCandidates2(mask, customs) {
+        return _walk(parseMask2(mask, customs));
+      }
+      function bruteforceKeyspace2(charset, min, max) {
+        var n = String(charset || "").length, t = 0;
+        min = min | 0 || 1;
+        max = max | 0 || min;
+        if (max < min) max = min;
+        for (var L = min; L <= max; L++) t += Math.pow(n, L);
+        return t;
+      }
+      function* bruteforceCandidates2(charset, min, max) {
+        var cs = String(charset || "");
+        if (!cs.length) return;
+        min = min | 0 || 1;
+        max = max | 0 || min;
+        if (max < min) max = min;
+        for (var L = min; L <= max; L++) {
+          var positions = new Array(L);
+          for (var q = 0; q < L; q++) positions[q] = cs;
+          yield* _walk(positions);
+        }
+      }
+      function _toBig(x) {
+        return typeof x === "bigint" ? x : BigInt(x);
+      }
+      function keyspace2(spec) {
+        if (!spec || !spec.type) throw new Error("keyspace: spec.type required");
+        if (spec.type === "wordlist") return BigInt((spec.words || []).length);
+        if (spec.type === "rules") return BigInt((spec.words || []).length) * BigInt((spec.rules || []).length);
+        if (spec.type === "mask") {
+          var P = parseMask2(spec.mask, spec.customs);
+          if (!P.length) return 0n;
+          var t = 1n;
+          for (var i = 0; i < P.length; i++) t *= BigInt(P[i].length);
+          return t;
+        }
+        if (spec.type === "bruteforce") {
+          var cs = String(spec.charset || "");
+          if (!cs.length) return 0n;
+          var n = BigInt(cs.length), mn = spec.min | 0 || 1, mx = spec.max | 0 || mn;
+          if (mx < mn) mx = mn;
+          var s = 0n, p = 1n;
+          for (var L = 1; L <= mx; L++) {
+            p *= n;
+            if (L >= mn) s += p;
+          }
+          return s;
+        }
+        throw new Error('keyspace: unknown type "' + spec.type + '"');
+      }
+      function _decode(positions, idx) {
+        var L = positions.length, chars = new Array(L);
+        for (var pos = L - 1; pos >= 0; pos--) {
+          var sz = BigInt(positions[pos].length);
+          chars[pos] = positions[pos].charAt(Number(idx % sz));
+          idx = idx / sz;
+        }
+        return chars.join("");
+      }
+      function candidateAt2(spec, index) {
+        var idx = _toBig(index);
+        if (idx < 0n) throw new Error("candidateAt: negative index");
+        var N = keyspace2(spec);
+        if (idx >= N) throw new Error("candidateAt: index " + idx + " >= keyspace " + N);
+        if (spec.type === "wordlist") return spec.words[Number(idx)];
+        if (spec.type === "rules") {
+          var R = BigInt(spec.rules.length), w = Number(idx / R), r = Number(idx % R);
+          return spec.apply ? spec.apply(spec.words[w], spec.rules[r]) : { word: spec.words[w], rule: spec.rules[r] };
+        }
+        if (spec.type === "mask") return _decode(parseMask2(spec.mask, spec.customs), idx);
+        if (spec.type === "bruteforce") {
+          var cs = String(spec.charset), n = BigInt(cs.length), mn = spec.min | 0 || 1, mx = spec.max | 0 || mn;
+          if (mx < mn) mx = mn;
+          var rem = idx, p = 1n;
+          for (var L = 1; L <= mx; L++) {
+            p *= n;
+            if (L < mn) continue;
+            if (rem < p) {
+              var P = new Array(L);
+              for (var k = 0; k < L; k++) P[k] = cs;
+              return _decode(P, rem);
+            }
+            rem -= p;
+          }
+          throw new Error("candidateAt: bruteforce index out of range");
+        }
+        throw new Error('candidateAt: unknown type "' + spec.type + '"');
+      }
+      function* _walkSlice(positions, startIdx, count) {
+        var L = positions.length;
+        if (!L) return;
+        var idx = new Array(L), rem = startIdx;
+        for (var pos = L - 1; pos >= 0; pos--) {
+          var sz = BigInt(positions[pos].length);
+          idx[pos] = Number(rem % sz);
+          rem = rem / sz;
+        }
+        var left = count;
+        while (left > 0n) {
+          var s = "";
+          for (var p = 0; p < L; p++) s += positions[p].charAt(idx[p]);
+          yield s;
+          left -= 1n;
+          var q = L - 1;
+          while (q >= 0) {
+            idx[q]++;
+            if (idx[q] < positions[q].length) break;
+            idx[q] = 0;
+            q--;
+          }
+          if (q < 0) break;
+        }
+      }
+      function* candidates(spec, opts) {
+        opts = opts || {};
+        var N = keyspace2(spec);
+        var skip = opts.skip != null ? _toBig(opts.skip) : 0n;
+        if (skip < 0n) skip = 0n;
+        if (skip > N) skip = N;
+        var end = opts.limit != null ? skip + _toBig(opts.limit) : N;
+        if (end > N) end = N;
+        var count = end - skip;
+        if (count <= 0n) return;
+        if (spec.type === "wordlist") {
+          for (var i = Number(skip), e = Number(end); i < e; i++) yield spec.words[i];
+          return;
+        }
+        if (spec.type === "rules") {
+          var R = BigInt(spec.rules.length), ap = spec.apply, j = skip;
+          while (j < end) {
+            var wi = Number(j / R), ri = Number(j % R);
+            yield ap ? ap(spec.words[wi], spec.rules[ri]) : { word: spec.words[wi], rule: spec.rules[ri] };
+            j += 1n;
+          }
+          return;
+        }
+        if (spec.type === "mask") {
+          yield* _walkSlice(parseMask2(spec.mask, spec.customs), skip, count);
+          return;
+        }
+        if (spec.type === "bruteforce") {
+          var cs = String(spec.charset), n = BigInt(cs.length), mn = spec.min | 0 || 1, mx = spec.max | 0 || mn;
+          if (mx < mn) mx = mn;
+          var base = 0n, p = 1n;
+          for (var L = 1; L <= mx; L++) {
+            p *= n;
+            if (L < mn) continue;
+            var lo = base, hi = base + p;
+            var from = skip > lo ? skip : lo, to = end < hi ? end : hi;
+            if (from < to) {
+              var P = new Array(L);
+              for (var k = 0; k < L; k++) P[k] = cs;
+              yield* _walkSlice(P, from - lo, to - from);
+            }
+            base = hi;
+            if (base >= end) break;
+          }
+          return;
+        }
+        throw new Error('candidates: unknown type "' + spec.type + '"');
+      }
+      function partition2(totalOrSpec, parts) {
+        var N = totalOrSpec && typeof totalOrSpec === "object" && totalOrSpec.type ? keyspace2(totalOrSpec) : _toBig(totalOrSpec);
+        var k = BigInt(parts);
+        if (k <= 0n) throw new Error("partition: parts must be >= 1");
+        var each = N / k, extra = N % k, out = [], skip = 0n;
+        for (var i = 0n; i < k; i++) {
+          var lim = each + (i < extra ? 1n : 0n);
+          out.push({ index: Number(i), skip, limit: lim });
+          skip += lim;
+        }
+        return out;
+      }
+      module.exports = {
+        parseMask: parseMask2,
+        maskKeyspace: maskKeyspace2,
+        maskCandidates: maskCandidates2,
+        bruteforceKeyspace: bruteforceKeyspace2,
+        bruteforceCandidates: bruteforceCandidates2,
+        MASK_CS,
+        // distributed primitives
+        keyspace: keyspace2,
+        candidateAt: candidateAt2,
+        candidates,
+        partition: partition2
+      };
+    }
+  });
+
   // index.js
-  var app_exports = {};
-  __export(app_exports, {
+  var crack_js_exports = {};
+  __export(crack_js_exports, {
+    attackCandidates: () => attackCandidates,
     availableHashTypes: () => availableHashTypes,
+    bruteforceCandidates: () => bruteforceCandidates,
+    bruteforceKeyspace: () => bruteforceKeyspace,
+    candidateAt: () => candidateAt,
+    crackBruteforce: () => crackBruteforce,
+    crackMask: () => crackMask,
+    crackRules: () => crackRules,
+    crackWordlist: () => crackWordlist,
     detectFileType: () => detectFileType,
     extract: () => extract,
     generatableModes: () => generatableModes,
@@ -15301,8 +15638,13 @@ var crack = (() => {
     hashTypes: () => hashTypes,
     isFast: () => isFast,
     isValidHash: () => isValidHash,
+    keyspace: () => keyspace,
+    maskCandidates: () => maskCandidates,
+    maskKeyspace: () => maskKeyspace,
     measureSpeed: () => measureSpeed,
     modeInfo: () => modeInfo,
+    parseMask: () => parseMask,
+    partition: () => partition,
     verifyHash: () => verifyHash
   });
   var bcrypt = require_bcryptjs_own();
@@ -15425,6 +15767,7 @@ var crack = (() => {
   var verifyPkzip = _zip.verifyPkzip;
   var verify7z = require_sevenzip().verify7z;
   var _extract = require_extract();
+  var _attack = require_attack();
   function _sb(s) {
     var b = [];
     for (var i = 0; i < s.length; i++) b.push(s.charCodeAt(i) & 255);
@@ -18794,7 +19137,40 @@ var crack = (() => {
       })
     };
   });
-  return __toCommonJS(app_exports);
+  var parseMask = _attack.parseMask;
+  var maskKeyspace = _attack.maskKeyspace;
+  var bruteforceKeyspace = _attack.bruteforceKeyspace;
+  var maskCandidates = _attack.maskCandidates;
+  var bruteforceCandidates = _attack.bruteforceCandidates;
+  var keyspace = _attack.keyspace;
+  var candidateAt = _attack.candidateAt;
+  var attackCandidates = _attack.candidates;
+  var partition = _attack.partition;
+  function runAttack(candidateIter, hash, type, opts) {
+    opts = opts || {};
+    const every = typeof opts.progressEvery === "number" && opts.progressEvery > 0 ? opts.progressEvery : 5e4;
+    let n = 0;
+    for (const cand of candidateIter) {
+      n++;
+      if (verifyHash(cand, hash, type)) return cand;
+      if (opts.onProgress && n % every === 0) opts.onProgress(n, cand);
+    }
+    return null;
+  }
+  function crackMask(hash, type, mask, customs, opts) {
+    return runAttack(_attack.candidates({ type: "mask", mask, customs }, opts), hash, type, opts);
+  }
+  function crackBruteforce(hash, type, charset, min, max, opts) {
+    return runAttack(_attack.candidates({ type: "bruteforce", charset, min, max }, opts), hash, type, opts);
+  }
+  function crackWordlist(hash, type, words, opts) {
+    return runAttack(_attack.candidates({ type: "wordlist", words: words || [] }, opts), hash, type, opts);
+  }
+  function crackRules(hash, type, words, rules, apply, opts) {
+    if (typeof apply !== "function") throw new Error("crackRules: an apply(word, rule) => string function is required (e.g. hashcat-rules-js applyRule)");
+    return runAttack(_attack.candidates({ type: "rules", words: words || [], rules: rules || [], apply }, opts), hash, type, opts);
+  }
+  return __toCommonJS(crack_js_exports);
 })();
 /*! Bundled license information:
 

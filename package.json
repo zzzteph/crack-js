@@ -4,7 +4,7 @@
   "description": "Javascript library to crack various hashes in hashcat format",
   "main": "dist/crack.js",
   "scripts": {
-    "test": "npm run build && node test.js",
+    "test": "npm run build && node test.js && node test-attack.js && node test-wordlist-fs.js",
     "build": "esbuild index.js --bundle --format=iife --global-name=crack --footer:js=\"if(typeof module!=='undefined')module.exports=crack;\" --outfile=dist/crack.js"
   },
   "repository": {

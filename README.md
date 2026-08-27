@@ -23,7 +23,7 @@ In the browser:
 <script>/* window.crack is now available */</script>
 ```
 
-An interactive demo — speed benchmark, hash identifier, generator, and a Web-Worker dictionary-attack "crack" tab — is in **`index.html`**.
+An interactive demo — speed benchmark, hash identifier, generator, file→hash extractor, and a Web-Worker **crack** tab (wordlist, wordlist + rules, bruteforce, and **mask** attacks, plus chained workflows) — is in **`index.html`**.
 
 ## Functions
 
@@ -55,6 +55,121 @@ crack.generateHash(0, 'hello');   // md5  -> '5d41402abc4b2a76b9719d911017c592'
 crack.verifyHash('hello', '5d41402abc4b2a76b9719d911017c592', 0);   // true
 crack.getPossibleHashTypes('5f4dcc3b5aa765d61d8327deb882cf99');      // ['md5', 'md4', 'ntlm', ...]
 crack.measureSpeed('md5');        // hashes/sec, 5-second test
+```
+
+## Attacks — mask & bruteforce
+
+Beyond one-shot `verifyHash`, the library ships lazy **candidate generators** and one-call **attack wrappers** (hashcat `-a 3`). *Bruteforce* walks a single charset over a length range; a *mask* fixes the characters you already know and varies only the rest — so every known character shrinks the search space by a whole factor. `fkaskgr?l?l?l?l?l?l?l?l` searches 26⁸ (the eight-character lowercase tail), not 26¹⁵.
+
+| Function | Description |
+|---|---|
+| `crackMask(hash, hashType, mask, customs?, opts?)` | Try every candidate a mask expands to; return the matching password, or `null`. |
+| `crackBruteforce(hash, hashType, charset, min, max, opts?)` | Try every string over `charset` of length `min…max`; return the match, or `null`. |
+| `crackWordlist(hash, hashType, words, opts?)` | Try each word in an array; return the match, or `null`. |
+| `crackRules(hash, hashType, words, rules, apply, opts?)` | Wordlist + rules. `apply(word, rule) => string` plugs in a rule engine (not bundled — it's UI-only, e.g. [hashcat-rules-js](https://github.com/zzzteph/hashcat-rules-js) `applyRule`); returns the match, or `null`. |
+| `maskCandidates(mask, customs?)` | Lazy generator yielding every candidate a mask produces. |
+| `bruteforceCandidates(charset, min, max)` | Lazy generator yielding every string over `charset` of length `min…max`. |
+| `parseMask(mask, customs?)` | The mask compiled to an array of per-position charset strings (throws on a bad token). |
+| `maskKeyspace(mask, customs?)` · `bruteforceKeyspace(charset, min, max)` | Candidate count (may be `Infinity`). |
+
+`opts`: `{ limit, onProgress(tried, lastCandidate), progressEvery = 50000 }`. The generators are lazy, so a billion-candidate keyspace uses no memory and the wrappers stop the instant a candidate verifies.
+
+**Mask tokens** — `?l` a–z · `?u` A–Z · `?d` 0–9 · `?s` symbols · `?a` = `?l?u?d?s` · `?h` 0–9a–f · `?H` 0–9A–F · `?b` 00–ff · `?1`–`?4` custom sets · `??` a literal `?`; every other character is a literal. Custom sets are passed as `{ 1: '?l?d' }` or `['?l?d']` (index 0 = `?1`) and may nest built-in tokens.
+
+```js
+const crack = require('crack-js');
+
+// You know the first 7 characters; brute-force an 8-char lowercase tail (NTLM):
+crack.crackMask('8be71fadca0f8edd5ff2603bd442c578', 1000, 'fkaskgr?l?l?l?l?l?l?l?l');
+
+// Shaped by a policy — Capital + 5 lowercase + 2 digits + a symbol (SHA-256):
+crack.crackMask(hash, 1400, '?u?l?l?l?l?l?d?d?s');
+
+// Known prefix, then a 3-digit build number (SHA-1):
+crack.crackMask(hash, 100, 'S3cur3-?d?d?d');                    // keyspace 1000
+
+// Custom charsets — leet only where you'd expect it (MD5): ?1 = a|@|4, ?2 = d
+crack.crackMask(hash, 0, 'p?1ss?2', { 1: 'a@4', 2: 'd' });     // keyspace 3
+
+// A 4–6 digit PIN, a plain wordlist, and wordlist + rules:
+crack.crackBruteforce(hash, 1000, '0123456789', 4, 6);         // NTLM PIN
+crack.crackWordlist(hash, 100, ['correct horse', 'battery staple']);                    // SHA-1
+crack.crackRules(hash, 0, ['summer', 'autumn'], [':', 'c', '$1$9', 'so0'], applyRule);  // + rule engine
+
+// Size any space up front (keyspace = exact BigInt; maskKeyspace = quick Number):
+crack.keyspace({ type: 'bruteforce', charset: '0123456789', min: 4, max: 8 });   // 111110000n
+crack.maskKeyspace('company?d?d?d?d');                                            // 10000
+
+// …or drive the lazy generator yourself:
+for (const pw of crack.maskCandidates('logon-?h?h?h?h')) { /* 4 hex chars */ }
+```
+
+### Distributed cracking (keyspace & slicing)
+
+To split one job across many machines, describe the attack as a **spec** and give each node a disjoint slice of the keyspace — hashcat's `--keyspace` + `-s`/`-l` model, in pure JS.
+
+```js
+{ type: 'wordlist',   words: [...] }
+{ type: 'rules',      words: [...], rules: [...], apply }   // apply = (word, rule) => string
+{ type: 'mask',       mask: '?l?l?d?d', customs }
+{ type: 'bruteforce', charset: 'abc…', min: 1, max: 8 }
+```
+
+| Function | Description |
+|---|---|
+| `keyspace(spec)` | Total candidate count as a **BigInt** — exact for spaces far beyond 2⁵³ (e.g. `?a?a?a?a?a?a?a?a?a` = 95⁹). |
+| `partition(spec \| total, nodes)` | Split `[0, N)` into `nodes` contiguous `{ index, skip, limit }` ranges (BigInts). Their union is exactly the whole space — no gaps, no overlap. |
+| `attackCandidates(spec, { skip, limit })` | Lazy generator of one slice. It **seeks** to `skip` in O(length) — never walking the skipped candidates — so a node starts instantly however deep its offset. |
+| `candidateAt(spec, index)` | The `index`-th candidate (0-based; BigInt/number/string). Random access for checkpoint / resume. |
+
+Every `crack*` wrapper also accepts `{ skip, limit }`, so a worker cracks only its range:
+
+```js
+const crack = require('crack-js');
+const spec = { type: 'mask', mask: '?u?l?l?l?l?l?d?d' };       // Capital + 5 lowercase + 2 digits
+
+crack.keyspace(spec);                                          // 30891577600n  (~3.1e10)
+const ranges = crack.partition(spec, 16);                      // 16 workers
+// [ {index:0, skip:0n, limit:1930723600n}, {index:1, skip:1930723600n, limit:1930723600n}, … ]
+
+// worker #7 cracks ONLY its slice (bcrypt); exactly one worker finds it, none overlap:
+const r = ranges[7];
+const found = crack.crackMask(hash, 3200, '?u?l?l?l?l?l?d?d', undefined, { skip: r.skip, limit: r.limit });
+```
+
+**Huge / "unlimited" masks.** `?a?a?a?a?a?a?a?a?a` is 95⁹ ≈ 6.3 × 10¹⁷ candidates — finite, but far past what a JS number holds exactly (2⁵³) and beyond any single machine. `keyspace()` returns a BigInt so the count and every `skip`/`limit` stay exact; generators are lazy so nothing is materialized; you only ever run the slices you carve out (set a per-node `limit` or time budget). `maskKeyspace()` stays a `Number` for quick UI estimates and may report `Infinity` for extreme masks — use `keyspace()` whenever the value must be exact.
+
+**How fast is the skip?** Seeking to an offset is `O(mask length)` — a handful of BigInt divisions — so it costs the same whether you jump to candidate #5 or #630,000,000,000,000,000. Measured on one core of the dev host:
+
+| Operation | Time |
+|---|---|
+| Seek to **any** offset in `?a`×9 (95⁹ ≈ 6.3 × 10¹⁷) — offset 0, N/2, N−1, or random | **~2 µs** |
+| Seek in `?a`×20 (95²⁰) | ~9 µs |
+| Seek in `?b`×130 (256¹³⁰ — a 314-digit index) | ~80 µs |
+| `partition()` + seek the start of all 10,000 node slices | ~41 ms |
+| Candidate **generation** (odometer walk, no hashing) | ~3.3 M/s |
+| Candidate **testing** (NTLM `verifyHash`) | ~48 K/s |
+
+```js
+const spec = { type: 'mask', mask: '?a'.repeat(9) };   // 95^9 ≈ 6.3e17 candidates
+crack.keyspace(spec);                                  // 630249409724609375n
+crack.candidateAt(spec, 315124704862304687n);          // the exact middle candidate — in ~2µs, no walking
+crack.attackCandidates(spec, { skip: 315124704862304687n, limit: 1000 });  // a node's slice, seeked instantly
+```
+
+Reaching that middle offset the naïve way (enumerating at ~3.3 M/s) would take ~6,000 years; seeking there takes ~2 µs. And since generation outruns hashing ~70× (3.3 M/s vs ~48 K/s for NTLM), the seek and the walk are effectively free — a node's real cost is hashing the candidates in its slice, so throughput scales with the number of nodes.
+
+**Wordlists too big for memory (2 GB+).** `crackWordlist`/`crackRules` take an in-memory array — fine to a point, but a multi-GB dictionary won't fit. For those, shard the *file* by byte range with the Node-only helper `src/wordlist-fs.js` (not part of the browser bundle): each node seeks to its byte window, snaps to the next line, and streams until the window ends — every line covered exactly once, constant memory, no line index or counting pass.
+
+```js
+const fs = require('fs');
+const crack = require('crack-js');
+const { byteShards, streamShardLines } = require('crack-js/src/wordlist-fs');
+
+const shards = byteShards(fs.statSync('rockyou-2gb.txt').size, NODES);   // one byte range per node
+// on node i — constant memory, whatever the file size:
+for await (const word of streamShardLines('rockyou-2gb.txt', shards[i].start, shards[i].end))
+  if (crack.verifyHash(word, hash, mode)) return word;
 ```
 
 ## Supported hash modes
