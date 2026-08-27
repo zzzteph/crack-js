@@ -1,33 +1,28 @@
-# Auto-release to npm on every push to main.
+# Publish to npm on push to main — using the version already in package.json.
 #
-# On each commit it bumps the version by one patch, cascading when a segment
-# reaches 9 (each of major.minor.patch stays a single digit):
-#   1.0.2 -> 1.0.3     1.0.9 -> 1.1.0     1.9.9 -> 2.0.0
-# then builds, tests, publishes to npm, and commits the bumped version back.
-name: Release to npm
+# Versioning is MANUAL: a maintainer bumps `version` in package.json and commits it.
+# CI never bumps the version and never commits anything back. On each push it builds,
+# tests, and — only if package.json's version is not yet on npm — publishes. Pushes that
+# don't change the version simply build+test and skip the publish (staying green), so the
+# published package always matches the committed version.
+name: Publish to npm
 
 on:
   push:
     branches: [main]
 
-# Never run two releases at once (they would race on the version number).
+# Never run two publishes at once.
 concurrency:
-  group: release-npm
+  group: publish-npm
   cancel-in-progress: false
 
 jobs:
-  release:
+  publish:
     runs-on: ubuntu-latest
-    # Skip the run caused by our own version-bump commit. Pushes made with the
-    # built-in GITHUB_TOKEN don't trigger workflows anyway, so this is just a
-    # belt-and-suspenders guard (e.g. if a PAT is used later).
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     permissions:
-      contents: write        # lets the job push the version-bump commit back
+      contents: read
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -38,7 +33,7 @@ jobs:
         run: npm ci
 
       - name: Build dist/crack.js
-        run: npm run build     # regenerates the bundled dist from src on every release
+        run: npm run build     # regenerates the bundled dist from src
 
       - name: Test
         run: |
@@ -46,38 +41,29 @@ jobs:
           node test-attack.js      # attack/keyspace invariants: coverage exactly-once, BigInt exactness
           node test-wordlist-fs.js # streaming byte-shard wordlist coverage (huge-file distribution)
 
-      - name: Compute next version (patch bump, each segment caps at 9)
-        id: ver
+      - name: Is this version already published?
+        id: check
         run: |
-          NEXT=$(node -e '
-            var v = require("./package.json").version.split(".").map(Number);
-            var M = v[0], m = v[1], p = v[2] + 1;
-            if (p > 9) { p = 0; m += 1; }
-            if (m > 9) { m = 0; M += 1; }
-            console.log(M + "." + m + "." + p);
-          ')
-          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
-          echo "Releasing version $NEXT"
-
-      - name: Apply version
-        run: npm version "${{ steps.ver.outputs.next }}" --no-git-tag-version
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "$NAME@$VERSION is already on npm — skipping publish. Bump the version in package.json to release."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "$NAME@$VERSION is new — publishing."
+          fi
 
       - name: Verify npm authentication
         # Fails early and clearly if NPM_TOKEN is missing/expired/read-only.
         # (A bad token makes `npm publish` return a confusing "404 Not Found - PUT".)
+        if: steps.check.outputs.publish == 'true'
         run: npm whoami
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish to npm
+        if: steps.check.outputs.publish == 'true'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Commit version bump back to the repo
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json dist/crack.js
-          git commit -m "chore(release): v${{ steps.ver.outputs.next }} [skip ci]"
-          git push origin HEAD:${{ github.ref_name }}
