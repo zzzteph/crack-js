@@ -1,6 +1,6 @@
 {
   "name": "crack-js",
-  "version": "1.1.7",
+  "version": "1.2.0",
   "description": "Javascript library to crack various hashes in hashcat format",
   "main": "dist/crack.js",
   "scripts": {

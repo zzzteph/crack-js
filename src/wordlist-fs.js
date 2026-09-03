@@ -155,13 +155,23 @@ async function* _scanWords(path, startByte, chunkSize) {
 async function buildLineIndex(path, stride) {
     stride = stride || DEFAULT_STRIDE;
     var offsets = [], n = 0;
-    for await (var ln of _scanWords(path)) { if (n % stride === 0) offsets.push(ln.offset); n++; }
+    try {
+        for await (var ln of _scanWords(path)) { if (n % stride === 0) offsets.push(ln.offset); n++; }
+    } catch (err) {
+        if (typeof console !== 'undefined' && console.warn) console.warn('crack-js: cannot read wordlist ' + path + ': ' + (err && err.message));
+        return { offsets: [], totalWords: 0, stride: stride };
+    }
     return { offsets: offsets, totalWords: n, stride: stride };
 }
 
 async function _getIndex(path, stride) {
     stride = stride || DEFAULT_STRIDE;
-    var st = await fs.promises.stat(path);
+    var st;
+    try { st = await fs.promises.stat(path); }
+    catch (err) {
+        if (typeof console !== 'undefined' && console.warn) console.warn('crack-js: cannot access wordlist ' + path + ': ' + (err && err.message));
+        return { offsets: [], totalWords: 0, stride: stride };
+    }
     var key = path + '|' + st.size + '|' + st.mtimeMs + '|' + stride;
     if (_indexCache[key]) return _indexCache[key];
     var idx = await buildLineIndex(path, stride);
@@ -194,7 +204,7 @@ async function* _streamWordWindow(path, first, count, stride) {
 //   spec: { type:'wordlist' } | { type:'rules', rules:[...], apply?:(w,r)=>string } | mask | bruteforce
 async function* candidatesFromFile(path, spec, opts) {
     opts = opts || {};
-    if (!spec || !spec.type) throw new Error('candidatesFromFile: spec.type required');
+    if (!spec || !spec.type) { if (typeof console !== 'undefined' && console.warn) console.warn('crack-js: candidatesFromFile: spec.type required'); return; }
     var stride = opts.stride;
 
     if (spec.type === 'mask' || spec.type === 'bruteforce') { yield* attack.candidates(spec, opts); return; }
@@ -226,7 +236,7 @@ async function* candidatesFromFile(path, spec, opts) {
         }
         return;
     }
-    throw new Error('candidatesFromFile: unknown type "' + spec.type + '"');
+    if (typeof console !== 'undefined' && console.warn) console.warn('crack-js: candidatesFromFile: unknown type "' + spec.type + '"');
 }
 
 module.exports = {

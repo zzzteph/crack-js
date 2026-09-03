@@ -79,7 +79,7 @@ function main() {
   ok('empty prepared -> []', crack.matchCandidate('x', null).length === 0);
   ok('prepareTargets([]) -> no match', crack.matchCandidate('x', crack.prepareTargets([], 'md5')).length === 0);
   ok('prepareTargets(single string)', crack.matchCandidate('w7', crack.prepareTargets(crack.generateHash('md5', 'w7'), 'md5')).length === 1);
-  try { crack.prepareTargets(['x'], 'no-such-type-zzz'); ok('unknown type throws', false); } catch (_) { ok('unknown type throws', true); }
+  ok('unknown type -> no throw + empty (warns)', crack.matchCandidate('x', crack.prepareTargets(['h'], 'no-such-type-zzz')).length === 0);
 
   console.log('\n==== batch-verify: ' + PASS + ' passed, ' + FAIL + ' failed ====');
   process.exit(FAIL ? 1 : 0);

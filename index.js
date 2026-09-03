@@ -1298,7 +1298,10 @@ function _isUnsaltedSingleShot(entry) {
 // Preprocess a set of target hashes for repeated candidate testing. Returns an opaque object.
 export function prepareTargets(hashes, hashType) {
     const entry = resolveHashType(hashType);
-    if (!entry) throw new Error(`Unsupported hash type: ${hashType}`);
+    if (!entry) {
+        if (typeof console !== 'undefined' && console.warn) console.warn('crack-js: prepareTargets: unsupported hash type "' + hashType + '" — matches nothing');
+        return { hashType, salted: false, map: new Map(), count: 0, unsupported: true };
+    }
     const list = Array.isArray(hashes) ? hashes : (hashes == null ? [] : [hashes]);
     if (_isUnsaltedSingleShot(entry)) {
         const map = new Map();                                   // normalized digest -> [original target strings]
@@ -1311,7 +1314,7 @@ export function prepareTargets(hashes, hashType) {
 // Return the subset of a prepared target set that `candidate` cracks (empty array = no match). Unsalted:
 // ONE hash of the candidate + a map lookup. Salted: entry.verify per target (minimal for distinct salts).
 export function matchCandidate(candidate, prepared) {
-    if (!prepared) return [];
+    if (!prepared || prepared.unsupported) return [];
     if (!prepared.salted) {
         let g;
         try { g = _gen.generate(prepared.mode, candidate, {}); } catch (_) { return []; }
@@ -1320,7 +1323,7 @@ export function matchCandidate(candidate, prepared) {
         return hit ? hit.slice() : [];
     }
     const out = [], v = prepared.entry.verify, t = prepared.targets;
-    for (let i = 0; i < t.length; i++) { if (v(candidate, t[i])) out.push(t[i]); }
+    for (let i = 0; i < t.length; i++) { try { if (v(candidate, t[i])) out.push(t[i]); } catch (_) { /* skip a malformed target */ } }
     return out;
 }
 

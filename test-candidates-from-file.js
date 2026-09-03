@@ -108,6 +108,8 @@ async function main() {
   ok('empty file -> no candidates', (await collect(wl.candidatesFromFile(path.join(TMP, 'empty.txt'), { type: 'wordlist' }, { stride: 4 }))).length === 0);
   ok('only-empty-lines -> 0 words', (await wl.countWords(writeFile('blank.txt', '\n\n\n\n'), { stride: 4 })) === 0);
   ok('rules R=0 -> nothing', (await collect(wl.candidatesFromFile(writeFile('r0.txt', bodyLF), { type: 'rules', rules: [] }, { stride: 8 }))).length === 0);
+  ok('missing file -> no throw + empty (warns)', (await collect(wl.candidatesFromFile(path.join(TMP, 'does-not-exist-xyz.txt'), { type: 'wordlist' }, { stride: 4 }))).length === 0);
+  ok('unknown spec type -> no throw + empty (warns)', (await collect(wl.candidatesFromFile(path.join(TMP, 'empty.txt'), { type: 'nope' }, {}))).length === 0);
 
   // ---- 6) LARGE FILE — constant memory + deep correctness ----
   const BIG = path.join(TMP, 'big.txt'); files.push(BIG);

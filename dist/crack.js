@@ -19135,7 +19135,10 @@ var crack = (() => {
   }
   function prepareTargets(hashes, hashType) {
     const entry = resolveHashType(hashType);
-    if (!entry) throw new Error(`Unsupported hash type: ${hashType}`);
+    if (!entry) {
+      if (typeof console !== "undefined" && console.warn) console.warn('crack-js: prepareTargets: unsupported hash type "' + hashType + '" \u2014 matches nothing');
+      return { hashType, salted: false, map: /* @__PURE__ */ new Map(), count: 0, unsupported: true };
+    }
     const list = Array.isArray(hashes) ? hashes : hashes == null ? [] : [hashes];
     if (_isUnsaltedSingleShot(entry)) {
       const map = /* @__PURE__ */ new Map();
@@ -19150,7 +19153,7 @@ var crack = (() => {
     return { hashType, salted: true, entry, targets: list.slice(), count: list.length };
   }
   function matchCandidate(candidate, prepared) {
-    if (!prepared) return [];
+    if (!prepared || prepared.unsupported) return [];
     if (!prepared.salted) {
       let g;
       try {
@@ -19164,7 +19167,10 @@ var crack = (() => {
     }
     const out = [], v = prepared.entry.verify, t = prepared.targets;
     for (let i = 0; i < t.length; i++) {
-      if (v(candidate, t[i])) out.push(t[i]);
+      try {
+        if (v(candidate, t[i])) out.push(t[i]);
+      } catch (_) {
+      }
     }
     return out;
   }
