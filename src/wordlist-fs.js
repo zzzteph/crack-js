@@ -20,7 +20,11 @@
 // index, no counting pass, O(1) seek per node, constant memory. Ideal for 2 GB+.
 
 var fs = require('fs');
+var attack = require('./attack');
 var NL = 0x0a;
+var CR = 0x0d;
+var DEFAULT_STRIDE = 65536;              // sparse line index: one byte offset per this many WORDS
+var _indexCache = Object.create(null);   // key `path|size|mtime|stride` -> { offsets, totalWords, stride }
 
 // Split a file of `size` bytes into `n` contiguous byte ranges [{index, start, end}].
 function byteShards(size, n) {
@@ -99,4 +103,133 @@ async function countLines(path, opts) {
     } finally { await fd.close(); }
 }
 
-module.exports = { byteShards: byteShards, streamShardLines: streamShardLines, countLines: countLines };
+// ===========================================================================
+// File-backed, KEYSPACE-ALIGNED candidate enumeration — crack-js owns keyspace AND the
+// offset-into-file. Unlike the byte-shard helpers above, this splits by WORD/LINE INDEX, so a
+// keyspace part [skip, skip+limit) maps 1:1 onto a wordlist/rules attack and matches keyspace(spec)
+// (wordlist -> #words, rules -> #words*#rules).
+//
+// A "word" = a NON-EMPTY line, split on /\r?\n/ (a CRLF's trailing \r stripped; empty lines skipped) —
+// identical to `words = read.split(/\r?\n/).filter(w => w.length > 0)`. So
+// candidatesFromFile(path, spec, {skip,limit}) yields BYTE-FOR-BYTE the same candidates as the in-memory
+// candidates({ ...spec, words }, {skip,limit}) — but never loads the file.
+//
+// A sparse word->byte index (one offset per DEFAULT_STRIDE words) is built ONCE per file in a single
+// streaming pass and cached (keyed by path+size+mtime). It is tiny (~10s of KB even for 1e9 words), and
+// every read streams, so memory is CONSTANT regardless of file size (a 20 GB list runs in a few MB).
+// ===========================================================================
+
+// Async generator over the NON-EMPTY lines of `path` from byte `startByte` (which MUST be a line start).
+// Yields { offset, bytes }: `offset` = the line's start byte, `bytes` = the line (one trailing \r stripped).
+async function* _scanWords(path, startByte, chunkSize) {
+    chunkSize = chunkSize || (1 << 20);
+    var fd = await fs.promises.open(path, 'r');
+    try {
+        var buf = Buffer.allocUnsafe(chunkSize);
+        var absPos = startByte || 0, segStart = startByte || 0, carry = [];
+        while (true) {
+            var r = await fd.read(buf, 0, chunkSize, absPos);
+            if (!r.bytesRead) break;
+            var from = 0;
+            for (var i = 0; i < r.bytesRead; i++) {
+                if (buf[i] !== NL) continue;
+                var line;
+                if (carry.length) { carry.push(Buffer.from(buf.subarray(from, i))); line = Buffer.concat(carry); }
+                else { line = Buffer.from(buf.subarray(from, i)); }
+                if (line.length && line[line.length - 1] === CR) line = line.subarray(0, line.length - 1);
+                if (line.length) yield { offset: segStart, bytes: line };
+                carry = []; from = i + 1; segStart = absPos + from;
+            }
+            if (from < r.bytesRead) carry.push(Buffer.from(buf.subarray(from, r.bytesRead)));
+            absPos += r.bytesRead;
+        }
+        if (carry.length) {                                       // final line with no trailing \n
+            var last = Buffer.concat(carry);
+            if (last.length && last[last.length - 1] === CR) last = last.subarray(0, last.length - 1);
+            if (last.length) yield { offset: segStart, bytes: last };
+        }
+    } finally { await fd.close(); }
+}
+
+// Build (streaming) the sparse word->byte index: offsets[k] = byte offset of word (k*stride).
+async function buildLineIndex(path, stride) {
+    stride = stride || DEFAULT_STRIDE;
+    var offsets = [], n = 0;
+    for await (var ln of _scanWords(path)) { if (n % stride === 0) offsets.push(ln.offset); n++; }
+    return { offsets: offsets, totalWords: n, stride: stride };
+}
+
+async function _getIndex(path, stride) {
+    stride = stride || DEFAULT_STRIDE;
+    var st = await fs.promises.stat(path);
+    var key = path + '|' + st.size + '|' + st.mtimeMs + '|' + stride;
+    if (_indexCache[key]) return _indexCache[key];
+    var idx = await buildLineIndex(path, stride);
+    _indexCache[key] = idx;
+    return idx;
+}
+
+// Number of WORDS (non-empty lines) — the wordlist keyspace. One streamed pass (indexed + cached).
+async function countWords(path, opts) { opts = opts || {}; return (await _getIndex(path, opts.stride)).totalWords; }
+
+// Async generator yielding the words at line indices [first, first+count), seeking near `first` via the index.
+async function* _streamWordWindow(path, first, count, stride) {
+    if (count <= 0) return;
+    var idx = await _getIndex(path, stride);
+    if (first >= idx.totalWords) return;
+    var end = Math.min(first + count, idx.totalWords);
+    var k = Math.floor(first / idx.stride);
+    var startByte = idx.offsets[k] || 0;
+    var lineNo = k * idx.stride;
+    for await (var ln of _scanWords(path, startByte)) {
+        if (lineNo >= end) break;
+        if (lineNo >= first) yield ln.bytes.toString('utf8');
+        lineNo++;
+    }
+}
+
+// Lazy generator over the keyspace slice [skip, skip+limit) of a FILE-backed attack — the file equivalent
+// of attack.candidates(spec, {skip,limit}). wordlist/rules read words from `path` by index; mask/bruteforce
+// need no file and delegate to the in-memory (already seekable) candidates().
+//   spec: { type:'wordlist' } | { type:'rules', rules:[...], apply?:(w,r)=>string } | mask | bruteforce
+async function* candidatesFromFile(path, spec, opts) {
+    opts = opts || {};
+    if (!spec || !spec.type) throw new Error('candidatesFromFile: spec.type required');
+    var stride = opts.stride;
+
+    if (spec.type === 'mask' || spec.type === 'bruteforce') { yield* attack.candidates(spec, opts); return; }
+
+    var skip = opts.skip != null ? BigInt(opts.skip) : 0n; if (skip < 0n) skip = 0n;
+
+    if (spec.type === 'wordlist') {
+        var N = BigInt((await _getIndex(path, stride)).totalWords);
+        if (skip > N) skip = N;
+        var end = opts.limit != null ? skip + BigInt(opts.limit) : N; if (end > N) end = N;
+        if (end - skip <= 0n) return;
+        yield* _streamWordWindow(path, Number(skip), Number(end - skip), stride);
+        return;
+    }
+
+    if (spec.type === 'rules') {
+        var rules = spec.rules || [], R = rules.length; if (R === 0) return;
+        var Rb = BigInt(R), apply = spec.apply;
+        var Nw = BigInt((await _getIndex(path, stride)).totalWords), N2 = Nw * Rb;
+        if (skip > N2) skip = N2;
+        var end2 = opts.limit != null ? skip + BigInt(opts.limit) : N2; if (end2 > N2) end2 = N2;
+        if (end2 - skip <= 0n) return;
+        var firstWord = skip / Rb, lastWord = (end2 - 1n) / Rb;         // word-major: rule varies fastest
+        var wCount = Number(lastWord - firstWord + 1n), wi = firstWord;
+        for await (var w of _streamWordWindow(path, Number(firstWord), wCount, stride)) {
+            var giBase = wi * Rb;
+            for (var r = 0; r < R; r++) { var gi = giBase + BigInt(r); if (gi >= skip && gi < end2) yield apply ? apply(w, rules[r]) : { word: w, rule: rules[r] }; }
+            wi += 1n;
+        }
+        return;
+    }
+    throw new Error('candidatesFromFile: unknown type "' + spec.type + '"');
+}
+
+module.exports = {
+    byteShards: byteShards, streamShardLines: streamShardLines, countLines: countLines,
+    buildLineIndex: buildLineIndex, countWords: countWords, candidatesFromFile: candidatesFromFile
+};
