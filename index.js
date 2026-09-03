@@ -1263,6 +1263,67 @@ export function measureSpeed(hashType, durationMs) {
     return Math.floor(count / (duration / 1000));
 }
 
+// ---------------------------------------------------------------------------
+// Batch verification: test one candidate against MANY targets with the MINIMUM hashing.
+// prepareTargets(hashes, type) preprocesses a target set ONCE; matchCandidate(pw, prepared) returns the
+// subset those cracked. For an UNSALTED single-shot type (md5/sha1/ntlm/sha256/…) the candidate is hashed
+// ONCE and looked up in a digest map — O(1), independent of the number of targets. For a SALTED/keyed type
+// it falls back to per-target verify (one hash per DISTINCT salt when salts differ, which is the usual case).
+// "Unsalted" is auto-detected from the generator: if ANY of salt/username/iterations/rounds/cost changes the
+// output, the type is salted/parametrized; only a deterministic, param-invariant generator that reproduces
+// the type's own example vector qualifies for the fast path.
+// ---------------------------------------------------------------------------
+
+function _normHash(s) { return String(s).toLowerCase(); }
+
+const _unsaltedCache = new Map();   // mode -> boolean
+function _isUnsaltedSingleShot(entry) {
+    const mode = entry.modes[0];
+    if (_unsaltedCache.has(mode)) return _unsaltedCache.get(mode);
+    let res = false;
+    try {
+        const pw = entry.example.password;
+        const a = _gen.generate(mode, pw, {});
+        if (a != null) {
+            const b = _gen.generate(mode, pw, {});
+            const s1 = _gen.generate(mode, pw, { salt: 'AaXx11', username: 'AaXx11', iterations: 7, rounds: 7, cost: 7 });
+            const s2 = _gen.generate(mode, pw, { salt: 'BbYy22', username: 'BbYy22', iterations: 9, rounds: 9, cost: 9 });
+            res = a === b && s1 === a && s2 === a && _normHash(a) === _normHash(entry.example.hash);
+        }
+    } catch (_) { res = false; }
+    _unsaltedCache.set(mode, res);
+    return res;
+}
+
+// Preprocess a set of target hashes for repeated candidate testing. Returns an opaque object.
+export function prepareTargets(hashes, hashType) {
+    const entry = resolveHashType(hashType);
+    if (!entry) throw new Error(`Unsupported hash type: ${hashType}`);
+    const list = Array.isArray(hashes) ? hashes : (hashes == null ? [] : [hashes]);
+    if (_isUnsaltedSingleShot(entry)) {
+        const map = new Map();                                   // normalized digest -> [original target strings]
+        for (const h of list) { const k = _normHash(h); const g = map.get(k); if (g) g.push(h); else map.set(k, [h]); }
+        return { hashType, mode: entry.modes[0], salted: false, map, count: list.length };
+    }
+    return { hashType, salted: true, entry, targets: list.slice(), count: list.length };
+}
+
+// Return the subset of a prepared target set that `candidate` cracks (empty array = no match). Unsalted:
+// ONE hash of the candidate + a map lookup. Salted: entry.verify per target (minimal for distinct salts).
+export function matchCandidate(candidate, prepared) {
+    if (!prepared) return [];
+    if (!prepared.salted) {
+        let g;
+        try { g = _gen.generate(prepared.mode, candidate, {}); } catch (_) { return []; }
+        if (g == null) return [];
+        const hit = prepared.map.get(_normHash(g));
+        return hit ? hit.slice() : [];
+    }
+    const out = [], v = prepared.entry.verify, t = prepared.targets;
+    for (let i = 0; i < t.length; i++) { if (v(candidate, t[i])) out.push(t[i]); }
+    return out;
+}
+
 // Official hashcat example vector { password, hash } for a type (mode or name),
 // or null if the type is unknown. Used by the test harness and benchmarks.
 export function getExample(hashType) {

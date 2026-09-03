@@ -15641,10 +15641,12 @@ var crack = (() => {
     keyspace: () => keyspace,
     maskCandidates: () => maskCandidates,
     maskKeyspace: () => maskKeyspace,
+    matchCandidate: () => matchCandidate,
     measureSpeed: () => measureSpeed,
     modeInfo: () => modeInfo,
     parseMask: () => parseMask,
     partition: () => partition,
+    prepareTargets: () => prepareTargets,
     verifyHash: () => verifyHash
   });
   var bcrypt = require_bcryptjs_own();
@@ -19107,6 +19109,64 @@ var crack = (() => {
       count++;
     }
     return Math.floor(count / (duration / 1e3));
+  }
+  function _normHash(s) {
+    return String(s).toLowerCase();
+  }
+  var _unsaltedCache = /* @__PURE__ */ new Map();
+  function _isUnsaltedSingleShot(entry) {
+    const mode = entry.modes[0];
+    if (_unsaltedCache.has(mode)) return _unsaltedCache.get(mode);
+    let res = false;
+    try {
+      const pw = entry.example.password;
+      const a = _gen.generate(mode, pw, {});
+      if (a != null) {
+        const b = _gen.generate(mode, pw, {});
+        const s1 = _gen.generate(mode, pw, { salt: "AaXx11", username: "AaXx11", iterations: 7, rounds: 7, cost: 7 });
+        const s2 = _gen.generate(mode, pw, { salt: "BbYy22", username: "BbYy22", iterations: 9, rounds: 9, cost: 9 });
+        res = a === b && s1 === a && s2 === a && _normHash(a) === _normHash(entry.example.hash);
+      }
+    } catch (_) {
+      res = false;
+    }
+    _unsaltedCache.set(mode, res);
+    return res;
+  }
+  function prepareTargets(hashes, hashType) {
+    const entry = resolveHashType(hashType);
+    if (!entry) throw new Error(`Unsupported hash type: ${hashType}`);
+    const list = Array.isArray(hashes) ? hashes : hashes == null ? [] : [hashes];
+    if (_isUnsaltedSingleShot(entry)) {
+      const map = /* @__PURE__ */ new Map();
+      for (const h of list) {
+        const k = _normHash(h);
+        const g = map.get(k);
+        if (g) g.push(h);
+        else map.set(k, [h]);
+      }
+      return { hashType, mode: entry.modes[0], salted: false, map, count: list.length };
+    }
+    return { hashType, salted: true, entry, targets: list.slice(), count: list.length };
+  }
+  function matchCandidate(candidate, prepared) {
+    if (!prepared) return [];
+    if (!prepared.salted) {
+      let g;
+      try {
+        g = _gen.generate(prepared.mode, candidate, {});
+      } catch (_) {
+        return [];
+      }
+      if (g == null) return [];
+      const hit = prepared.map.get(_normHash(g));
+      return hit ? hit.slice() : [];
+    }
+    const out = [], v = prepared.entry.verify, t = prepared.targets;
+    for (let i = 0; i < t.length; i++) {
+      if (v(candidate, t[i])) out.push(t[i]);
+    }
+    return out;
   }
   function getExample(hashType) {
     const entry = resolveHashType(hashType);
